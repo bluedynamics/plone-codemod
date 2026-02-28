@@ -741,14 +741,18 @@ def _populate_project_table(project: tomlkit.items.Table, metadata: dict) -> Non
     if python_requires:
         project.add("requires-python", python_requires)
 
-    # Classifiers
+    # Classifiers — strip License :: classifiers when a PEP 639 license
+    # expression is present, because setuptools >= 78 rejects the combination.
     classifiers = metadata.get("classifiers")
     if classifiers and isinstance(classifiers, list):
-        arr = tomlkit.array()
-        arr.multiline(True)
-        for c in classifiers:
-            arr.append(c)
-        project.add("classifiers", arr)
+        if license_val:
+            classifiers = [c for c in classifiers if not c.startswith("License ::")]
+        if classifiers:
+            arr = tomlkit.array()
+            arr.multiline(True)
+            for c in classifiers:
+                arr.append(c)
+            project.add("classifiers", arr)
 
     # Keywords
     keywords = metadata.get("keywords")

@@ -625,6 +625,41 @@ name = "existing-package"
             result = migrate_packaging(root)
             assert any("already has [project]" in w for w in result["warnings"])
 
+    def test_license_classifiers_stripped_with_pep639(self):
+        """PEP 639 license expression + License :: classifier is rejected by setuptools >= 78."""
+        metadata = {
+            "name": "my-package",
+            "version": "1.0",
+            "license": "GPL",
+            "classifiers": [
+                "Framework :: Plone",
+                "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+                "Programming Language :: Python :: 3",
+            ],
+        }
+        content = generate_pyproject_toml(metadata)
+        parsed = tomlkit.parse(content)
+        classifiers = list(parsed["project"]["classifiers"])
+        assert "Framework :: Plone" in classifiers
+        assert "Programming Language :: Python :: 3" in classifiers
+        assert not any(c.startswith("License ::") for c in classifiers)
+        assert parsed["project"]["license"] == "GPL-2.0-only"
+
+    def test_license_classifiers_kept_without_license_field(self):
+        """If no license field, keep License :: classifiers."""
+        metadata = {
+            "name": "my-package",
+            "version": "1.0",
+            "classifiers": [
+                "License :: OSI Approved :: MIT License",
+                "Programming Language :: Python :: 3",
+            ],
+        }
+        content = generate_pyproject_toml(metadata)
+        parsed = tomlkit.parse(content)
+        classifiers = list(parsed["project"]["classifiers"])
+        assert "License :: OSI Approved :: MIT License" in classifiers
+
     def test_no_namespace_packages_in_output(self):
         metadata = {
             "name": "my-package",
