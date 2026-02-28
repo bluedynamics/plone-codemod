@@ -145,6 +145,66 @@ setup(
         result = parse_setup_py(setup_py)
         assert result["long_description"] == "__file__:README.rst"
 
+    def test_long_description_read_helper(self, tmp_path):
+        """Test read("README.rst") helper pattern."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+import os
+
+def read(*rnames):
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
+
+from setuptools import setup
+setup(
+    name='my-package',
+    long_description=read('README.rst'),
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
+    def test_long_description_format_with_read(self, tmp_path):
+        """Test '{}'.format(read('README'), read('CHANGES')) pattern."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+import os
+
+def read(*rnames):
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
+
+from setuptools import setup
+setup(
+    name='my-package',
+    long_description="{0}\\n\\n{1}".format(
+        read("README.rst"),
+        read("CHANGES.rst"),
+    ),
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
+    def test_long_description_concat_with_read(self, tmp_path):
+        """Test read('README') + '\\n' + read('CHANGES') pattern."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+import os
+
+def read(*rnames):
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
+
+from setuptools import setup
+setup(
+    name='my-package',
+    long_description=read("README.rst") + "\\n\\n" + read("CHANGES.rst"),
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
     def test_classifiers(self, tmp_path):
         setup_py = tmp_path / "setup.py"
         setup_py.write_text("""\

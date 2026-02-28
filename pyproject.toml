@@ -33,7 +33,7 @@ Repository = "https://github.com/bluedynamics/plone-codemod"
 Issues = "https://github.com/bluedynamics/plone-codemod/issues"
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest",
     "pytest-cov",
     "coverage[toml]>=7.0",

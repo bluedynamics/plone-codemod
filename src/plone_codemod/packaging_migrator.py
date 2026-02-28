@@ -90,7 +90,9 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
 
     Covers the patterns actually seen in Plone setup.py files:
     constants, variables, lists, dicts, ``dict()``, ``find_packages()``,
-    string concatenation, and ``open(...).read()`` file references.
+    string concatenation, ``open(...).read()`` file references,
+    ``"...".format(read("README.rst"), ...)`` format calls, and
+    helper functions like ``read("README.rst")`` with doc-filename args.
     """
     if isinstance(node, ast.Constant):
         return node.value
@@ -151,6 +153,9 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
         left = _eval_node(node.left, module_vars)
         right = _eval_node(node.right, module_vars)
         if isinstance(left, str) and isinstance(right, str):
+            # Propagate __file__: reference (the first file is typically README)
+            if left.startswith("__file__:"):
+                return left
             return left + right
         return _UNRESOLVED
 
@@ -159,6 +164,30 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
         chain = _detect_file_read_chain(node)
         if chain:
             return f"__file__:{chain}"
+
+    # "{}...".format(read("README.rst"), ...) → extract file ref from first arg
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "format"
+        and isinstance(node.func.value, ast.Constant)
+        and isinstance(node.func.value.value, str)
+        and node.args
+    ):
+        first = _eval_node(node.args[0], module_vars)
+        if isinstance(first, str) and first.startswith("__file__:"):
+            return first
+
+    # Calls with doc-filename args: read("README.rst"), read("CHANGES.rst")
+    # Common pattern in Plone setup.py files using helper functions.
+    if isinstance(node, ast.Call) and node.args:
+        first_arg = node.args[0]
+        if (
+            isinstance(first_arg, ast.Constant)
+            and isinstance(first_arg.value, str)
+            and _is_doc_filename(first_arg.value)
+        ):
+            return f"__file__:{first_arg.value}"
 
     return _UNRESOLVED
 
@@ -205,6 +234,18 @@ def _detect_file_read_chain(node: ast.Call) -> str | None:
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     return arg.value
     return None
+
+
+def _is_doc_filename(filename: str) -> bool:
+    """Return True if *filename* looks like a documentation file.
+
+    Used to detect helper functions like ``read("README.rst")`` that
+    read documentation files — a very common pattern in Plone setup.py
+    files.  Only matches well-known documentation filenames to avoid
+    false positives on unrelated function calls.
+    """
+    base = filename.split(".")[0].upper() if "." in filename else filename.upper()
+    return base in ("README", "CHANGES", "CHANGELOG", "HISTORY", "NEWS")
 
 
 def _is_setup_call(node: ast.Call) -> bool:
