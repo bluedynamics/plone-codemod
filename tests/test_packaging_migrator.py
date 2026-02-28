@@ -964,9 +964,7 @@ repos:
     -   id: trailing-whitespace
 """)
             result = migrate_packaging(root)
-            assert any(
-                "pre-commit" in str(f) for f in result["modified_files"]
-            )
+            assert any("pre-commit" in str(f) for f in result["modified_files"])
             content = (root / ".pre-commit-config.yaml").read_text()
             assert "check-manifest" not in content
             assert "trailing-whitespace" in content
