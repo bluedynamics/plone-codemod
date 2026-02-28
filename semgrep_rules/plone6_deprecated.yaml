@@ -180,3 +180,188 @@ rules:
       ZCML references deprecated plone.app.layout.navigation.interfaces.INavigationRoot.
       Use plone.base.interfaces.siteroot.INavigationRoot instead.
     severity: WARNING
+
+  # -------------------------------------------------------------------------
+  # Page template issues (detection only)
+  # -------------------------------------------------------------------------
+  - id: plone6-pt-main-template-no-view
+    languages: [generic]
+    pattern: context/main_template/macros
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Page template uses acquisition-based main_template.
+      Use context/@@main_template/macros/master instead (browser view).
+    severity: ERROR
+
+  - id: plone6-pt-here-main-template
+    languages: [generic]
+    pattern: here/main_template/macros
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Page template uses deprecated 'here/main_template'.
+      Use context/@@main_template/macros/master instead.
+    severity: ERROR
+
+  - id: plone6-pt-portal-properties
+    languages: [generic]
+    pattern: portal_properties
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Page template references portal_properties which was removed in Plone 6.
+      Use plone.app.registry via @@plone_portal_state or plone.api instead.
+    severity: ERROR
+
+  - id: plone6-pt-site-properties
+    languages: [generic]
+    pattern: site_properties
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Page template references site_properties which was removed in Plone 6.
+      Use the plone.app.registry instead.
+    severity: ERROR
+
+  - id: plone6-pt-pretty-title-or-id
+    languages: [generic]
+    pattern: pretty_title_or_id
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Skin script pretty_title_or_id may not be available in Plone 6.
+      Use context/Title or a view method instead.
+    severity: WARNING
+
+  - id: plone6-pt-queryCatalog
+    languages: [generic]
+    pattern: queryCatalog
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      queryCatalog skin script was removed in Plone 6.
+      Use portal_catalog queries or plone.api.content.find() instead.
+    severity: ERROR
+
+  - id: plone6-pt-getFolderContents
+    languages: [generic]
+    pattern: getFolderContents
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      getFolderContents was removed in Plone 6.
+      Use @@contentlisting view or catalog queries instead.
+    severity: ERROR
+
+  - id: plone6-pt-getIcon
+    languages: [generic]
+    pattern: getIcon
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      getIcon was removed in Plone 6.
+      Use @@iconresolver view instead.
+    severity: WARNING
+
+  - id: plone6-pt-normalizeString
+    languages: [generic]
+    pattern: normalizeString
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      plone_utils.normalizeString via acquisition may not work in Plone 6.
+      Use plone.i18n.normalizer or a view method instead.
+    severity: WARNING
+
+  - id: plone6-pt-checkPermission-builtin
+    languages: [generic]
+    pattern: checkPermission(
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      checkPermission() as a TAL builtin may not be available in Plone 6 templates.
+      Use view method or @@plone_context_state/is_editable instead.
+    severity: WARNING
+
+  - id: plone6-pt-prefs-main-template-no-view
+    languages: [generic]
+    pattern: context/prefs_main_template/macros
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Page template uses acquisition-based prefs_main_template.
+      Use context/@@prefs_main_template/macros/master instead.
+    severity: ERROR
+
+  - id: plone6-pt-plone-utils-acquisition
+    languages: [generic]
+    pattern: plone_utils
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      Direct plone_utils acquisition in templates is deprecated.
+      Use plone.api or a view method instead.
+    severity: WARNING
+
+  - id: plone6-pt-modules-pythonscripts
+    languages: [generic]
+    pattern: Products.PythonScripts.standard
+    paths:
+      include:
+        - "*.pt"
+    message: >
+      modules['Products.PythonScripts.standard'] is deprecated.
+      Use Python stdlib (e.g., urllib.parse.quote) instead.
+    severity: WARNING
+
+  # -------------------------------------------------------------------------
+  # Bootstrap 3 detection (informational)
+  # -------------------------------------------------------------------------
+  - id: plone6-bs3-glyphicon
+    languages: [generic]
+    pattern: glyphicon
+    paths:
+      include:
+        - "*.pt"
+        - "*.html"
+    message: >
+      Glyphicons (Bootstrap 3) are not available in Plone 6 (Bootstrap 5).
+      Use Bootstrap Icons, Font Awesome, or @@iconresolver.
+    severity: WARNING
+
+  - id: plone6-bs3-data-toggle
+    languages: [generic]
+    pattern: data-toggle=
+    paths:
+      include:
+        - "*.pt"
+        - "*.html"
+    message: >
+      Bootstrap 3 data-toggle attribute. In Bootstrap 5 use data-bs-toggle.
+      Run with --bootstrap flag to auto-fix.
+    severity: WARNING
+
+  - id: plone6-bs3-panel-class
+    languages: [generic]
+    pattern: panel-default
+    paths:
+      include:
+        - "*.pt"
+        - "*.html"
+    message: >
+      Bootstrap 3 panel component. In Bootstrap 5 use card component.
+      Run with --bootstrap flag to auto-fix.
+    severity: WARNING

@@ -5,11 +5,14 @@ Orchestrates all migration phases:
 1. Python imports (libcst codemod)
 2. ZCML dotted names
 3. GenericSetup XML
-4. Audit (semgrep, optional)
+4. Page templates (.pt)
+5. Bootstrap 3→5 (opt-in via --bootstrap)
+6. Audit (semgrep, optional)
 
 Usage:
     python runner.py ./src/
     python runner.py ./src/ --dry-run
+    python runner.py ./src/ --bootstrap
     python runner.py ./src/ --config custom_config.yaml
     python runner.py ./src/ --skip-python --skip-audit
 """
@@ -24,6 +27,7 @@ from pathlib import Path
 # Allow running from the plone-codemod directory
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from templates.pt_migrator import migrate_bootstrap_files, migrate_pt_files
 from zcml.zcml_migrator import migrate_genericsetup_files, migrate_zcml_files
 
 
@@ -114,13 +118,7 @@ def run_zcml_migration(
     """Migrate ZCML files."""
     print("\n=== Phase 2: ZCML migration ===")
     modified = migrate_zcml_files(source_dir, config_path, dry_run=dry_run)
-    prefix = "[DRY RUN] Would modify" if dry_run else "Modified"
-    for f in modified:
-        print(f"  {prefix}: {f}")
-    if not modified:
-        print("  No ZCML files needed changes.")
-    else:
-        print(f"  {prefix} {len(modified)} ZCML file(s).")
+    _report(modified, "ZCML file", dry_run)
 
 
 def run_genericsetup_migration(
@@ -131,18 +129,34 @@ def run_genericsetup_migration(
     """Migrate GenericSetup XML files."""
     print("\n=== Phase 3: GenericSetup XML migration ===")
     modified = migrate_genericsetup_files(source_dir, config_path, dry_run=dry_run)
-    prefix = "[DRY RUN] Would modify" if dry_run else "Modified"
-    for f in modified:
-        print(f"  {prefix}: {f}")
-    if not modified:
-        print("  No GenericSetup XML files needed changes.")
-    else:
-        print(f"  {prefix} {len(modified)} XML file(s).")
+    _report(modified, "XML file", dry_run)
+
+
+def run_pt_migration(
+    source_dir: Path,
+    config_path: Path,
+    dry_run: bool = False,
+) -> None:
+    """Migrate page templates."""
+    print("\n=== Phase 4: Page template migration ===")
+    modified = migrate_pt_files(source_dir, config_path, dry_run=dry_run)
+    _report(modified, "page template", dry_run)
+
+
+def run_bootstrap_migration(
+    source_dir: Path,
+    config_path: Path,
+    dry_run: bool = False,
+) -> None:
+    """Migrate Bootstrap 3→5 in templates."""
+    print("\n=== Phase 5: Bootstrap 3 → 5 migration ===")
+    modified = migrate_bootstrap_files(source_dir, config_path, dry_run=dry_run)
+    _report(modified, "file", dry_run)
 
 
 def run_audit(source_dir: Path) -> None:
     """Use semgrep to find remaining unmigrated patterns."""
-    print("\n=== Phase 4: Audit (semgrep) ===")
+    print("\n=== Phase 6: Audit (semgrep) ===")
     semgrep_rules = Path(__file__).resolve().parent / "semgrep_rules"
 
     if not shutil.which("semgrep"):
@@ -171,15 +185,27 @@ def run_audit(source_dir: Path) -> None:
                 print(f"  {line}")
 
 
+def _report(modified: list[Path], label: str, dry_run: bool) -> None:
+    prefix = "[DRY RUN] Would modify" if dry_run else "Modified"
+    for f in modified:
+        print(f"  {prefix}: {f}")
+    if not modified:
+        print(f"  No {label}s needed changes.")
+    else:
+        print(f"  {prefix} {len(modified)} {label}(s).")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Plone 5.2 → 6.x Code Migration Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python runner.py ./src/                         # Full migration
+    python runner.py ./src/                         # Full migration (no BS)
     python runner.py ./src/ --dry-run               # Preview changes
-    python runner.py ./src/ --skip-python           # Only ZCML + XML
+    python runner.py ./src/ --bootstrap             # Include Bootstrap 3→5
+    python runner.py ./src/ --bootstrap --dry-run   # Preview with Bootstrap
+    python runner.py ./src/ --skip-python           # Only ZCML + XML + PT
     python runner.py ./src/ --skip-audit            # Skip semgrep audit
     python runner.py ./src/ --config my_config.yaml # Custom config
         """,
@@ -200,9 +226,15 @@ Examples:
         action="store_true",
         help="Preview what would change without writing files",
     )
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Enable Bootstrap 3→5 migration (opt-in, not run by default)",
+    )
     parser.add_argument("--skip-python", action="store_true", help="Skip Python import migration")
     parser.add_argument("--skip-zcml", action="store_true", help="Skip ZCML migration")
     parser.add_argument("--skip-xml", action="store_true", help="Skip GenericSetup XML migration")
+    parser.add_argument("--skip-pt", action="store_true", help="Skip page template migration")
     parser.add_argument("--skip-audit", action="store_true", help="Skip semgrep audit phase")
 
     args = parser.parse_args()
@@ -210,11 +242,13 @@ Examples:
     if not args.source_dir.is_dir():
         parser.error(f"Not a directory: {args.source_dir}")
 
-    print(f"Plone 5.2 → 6.x Migration Tool")
+    print("Plone 5.2 → 6.x Migration Tool")
     print(f"Source: {args.source_dir.resolve()}")
     print(f"Config: {args.config}")
     if args.dry_run:
         print("Mode: DRY RUN (no files will be modified)")
+    if args.bootstrap:
+        print("Bootstrap: ENABLED (BS3 → BS5 migration)")
 
     if not args.skip_python:
         run_python_migration(args.source_dir, args.config, args.dry_run)
@@ -224,6 +258,12 @@ Examples:
 
     if not args.skip_xml:
         run_genericsetup_migration(args.source_dir, args.config, args.dry_run)
+
+    if not args.skip_pt:
+        run_pt_migration(args.source_dir, args.config, args.dry_run)
+
+    if args.bootstrap:
+        run_bootstrap_migration(args.source_dir, args.config, args.dry_run)
 
     if not args.skip_audit:
         run_audit(args.source_dir)

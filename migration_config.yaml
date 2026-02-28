@@ -516,6 +516,216 @@ genericsetup:
 
 
 # =============================================================================
+# Page template (.pt) replacements
+# =============================================================================
+# Safe automated fixes applied to all .pt files.
+
+pagetemplates:
+  # main_template macro: acquisition → browser view
+  - old: "context/main_template/macros/master"
+    new: "context/@@main_template/macros/master"
+
+  - old: "here/main_template/macros/master"
+    new: "context/@@main_template/macros/master"
+
+  - old: "context/prefs_main_template/macros/master"
+    new: "context/@@prefs_main_template/macros/master"
+
+  - old: "here/prefs_main_template/macros/master"
+    new: "context/@@prefs_main_template/macros/master"
+
+  # here → context (Plone 6 convention, here is deprecated)
+  - old: "here/"
+    new: "context/"
+
+
+# =============================================================================
+# Bootstrap 3 → 5 replacements (opt-in via --bootstrap flag)
+# =============================================================================
+# Only applied when explicitly requested. Some projects keep BS3 for parts.
+
+bootstrap:
+  # Data attributes renamed in BS5
+  data_attributes:
+    - old: 'data-toggle='
+      new: 'data-bs-toggle='
+
+    - old: 'data-target='
+      new: 'data-bs-target='
+
+    - old: 'data-dismiss='
+      new: 'data-bs-dismiss='
+
+    - old: 'data-ride='
+      new: 'data-bs-ride='
+
+    - old: 'data-slide='
+      new: 'data-bs-slide='
+
+    - old: 'data-slide-to='
+      new: 'data-bs-slide-to='
+
+    - old: 'data-parent='
+      new: 'data-bs-parent='
+
+    - old: 'data-spy='
+      new: 'data-bs-spy='
+
+    - old: 'data-offset='
+      new: 'data-bs-offset='
+
+    - old: 'data-backdrop='
+      new: 'data-bs-backdrop='
+
+    - old: 'data-keyboard='
+      new: 'data-bs-keyboard='
+
+    - old: 'data-focus='
+      new: 'data-bs-focus='
+
+    - old: 'data-interval='
+      new: 'data-bs-interval='
+
+    - old: 'data-pause='
+      new: 'data-bs-pause='
+
+    - old: 'data-wrap='
+      new: 'data-bs-wrap='
+
+    - old: 'data-content='
+      new: 'data-bs-content='
+
+    - old: 'data-placement='
+      new: 'data-bs-placement='
+
+    - old: 'data-container='
+      new: 'data-bs-container='
+
+  # CSS class renames
+  css_classes:
+    - old: "pull-right"
+      new: "float-end"
+
+    - old: "pull-left"
+      new: "float-start"
+
+    - old: "btn-default"
+      new: "btn-secondary"
+
+    - old: "btn-xs"
+      new: "btn-sm"
+
+    - old: "img-responsive"
+      new: "img-fluid"
+
+    - old: "img-circle"
+      new: "rounded-circle"
+
+    - old: "img-rounded"
+      new: "rounded"
+
+    - old: "input-lg"
+      new: "form-control-lg"
+
+    - old: "input-sm"
+      new: "form-control-sm"
+
+    - old: "control-label"
+      new: "form-label"
+
+    - old: "table-condensed"
+      new: "table-sm"
+
+    - old: "hidden-xs"
+      new: "d-none d-sm-block"
+
+    - old: "hidden-sm"
+      new: "d-none d-md-block"
+
+    - old: "hidden-md"
+      new: "d-none d-lg-block"
+
+    - old: "hidden-lg"
+      new: "d-none d-xl-block"
+
+    - old: "visible-xs"
+      new: "d-block d-sm-none"
+
+    - old: "visible-sm"
+      new: "d-block d-md-none"
+
+    - old: "visible-md"
+      new: "d-block d-lg-none"
+
+    - old: "visible-lg"
+      new: "d-block d-xl-none"
+
+    - old: "panel panel-default"
+      new: "card"
+
+    - old: "panel-heading"
+      new: "card-header"
+
+    - old: "panel-title"
+      new: "card-title"
+
+    - old: "panel-body"
+      new: "card-body"
+
+    - old: "panel-footer"
+      new: "card-footer"
+
+    - old: "panel-collapse"
+      new: "collapse"
+
+    - old: "panel-group"
+      new: "accordion"
+
+    - old: "well"
+      new: "card card-body"
+
+    - old: "thumbnail"
+      new: "card card-body"
+
+    - old: "list-inline > li"
+      new: "list-inline-item"
+
+    - old: "label label-"
+      new: "badge bg-"
+
+    - old: "badge"
+      new: "badge rounded-pill"
+
+    # Plone-specific BS3 overrides
+    - old: "plone-btn-default"
+      new: "btn-secondary"
+
+    - old: "plone-btn-xs"
+      new: "btn-sm"
+
+    - old: "plone-btn "
+      new: "btn "
+
+    - old: "plone-btn-primary"
+      new: "btn-primary"
+
+    - old: "plone-btn-success"
+      new: "btn-success"
+
+    - old: "plone-btn-danger"
+      new: "btn-danger"
+
+    - old: "plone-btn-info"
+      new: "btn-info"
+
+    - old: "plone-btn-warning"
+      new: "btn-warning"
+
+    - old: "plone-btn-sm"
+      new: "btn-sm"
+
+
+# =============================================================================
 # Python 2 cleanup patterns (handled by pyupgrade, listed for completeness)
 # =============================================================================
 python2_cleanup:
