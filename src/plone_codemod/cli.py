@@ -179,7 +179,15 @@ def run_namespace_migration(
     project_dir: Path,
     dry_run: bool = False,
 ) -> None:
-    """Phase 7: Migrate to PEP 420 implicit namespace packages."""
+    """Phase 7: Migrate to PEP 420 implicit namespace packages.
+
+    Lazy-imports namespace_migrator to avoid loading it (and its
+    dependencies) when the ``--namespaces`` flag is not used.
+
+    Operates on the *project* directory (where setup.py lives),
+    not the source directory, because it needs to modify setup.py
+    and setup.cfg alongside the ``__init__.py`` files.
+    """
     print("\n=== Phase 7: Namespace package migration (PEP 420) ===")
     from plone_codemod.namespace_migrator import migrate_namespaces
 
@@ -201,7 +209,15 @@ def run_packaging_migration(
     project_dir: Path,
     dry_run: bool = False,
 ) -> None:
-    """Phase 8: Migrate setup.py → pyproject.toml."""
+    """Phase 8: Migrate setup.py -> pyproject.toml.
+
+    Lazy-imports packaging_migrator because it depends on ``tomlkit``
+    which is only needed when ``--packaging`` is used.
+
+    Must run *after* Phase 7 (namespace migration) so that
+    ``namespace_packages`` is already cleaned from setup.py before
+    it gets parsed for pyproject.toml generation.
+    """
     print("\n=== Phase 8: setup.py → pyproject.toml migration ===")
     from plone_codemod.packaging_migrator import migrate_packaging
 

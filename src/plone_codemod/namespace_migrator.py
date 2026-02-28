@@ -1,10 +1,18 @@
 """Migrate from pkg_resources/pkgutil namespace packages to PEP 420 implicit.
 
-Detects and removes namespace declarations from __init__.py files:
-- pkg_resources style: __import__('pkg_resources').declare_namespace(__name__)
-- pkgutil style: from pkgutil import extend_path; __path__ = extend_path(...)
+Plone packages historically use explicit namespace packages (pkg_resources or
+pkgutil style) to split packages like ``plone.app.*`` across multiple
+distributions.  Since Python 3.3 (PEP 420), implicit namespace packages
+make these declarations unnecessary — the mere absence of ``__init__.py``
+is enough.  Removing the old declarations is a prerequisite for modern
+packaging (hatchling/flit) because setuptools' ``namespace_packages``
+kwarg has no equivalent in PEP 621.
 
-Also cleans up namespace_packages from setup.py/setup.cfg.
+Detects and removes namespace declarations from ``__init__.py`` files:
+- pkg_resources style: ``__import__('pkg_resources').declare_namespace(...)``
+- pkgutil style: ``from pkgutil import extend_path; __path__ = ...``
+
+Also cleans up ``namespace_packages`` from setup.py/setup.cfg.
 """
 
 from pathlib import Path
@@ -35,7 +43,12 @@ _RE_PKGUTIL_PATH = re.compile(
 
 
 def is_namespace_declaration(line: str) -> bool:
-    """Return True if *line* is a namespace package declaration."""
+    """Return True if *line* is a namespace package declaration.
+
+    Operates on individual lines (not multi-line content) because the
+    regexes use ``^`` anchors.  Blank lines and comments are excluded
+    so callers can iterate over a file and classify each line.
+    """
     stripped = line.strip()
     if not stripped or stripped.startswith("#"):
         return False
@@ -54,7 +67,13 @@ def has_namespace_declaration(content: str) -> bool:
 def is_only_namespace_init(content: str) -> bool:
     """Return True if the file contains only namespace declarations.
 
-    Allows comments, blank lines, and encoding cookies alongside.
+    This distinction matters because namespace-only ``__init__.py`` files
+    should be *deleted* entirely (PEP 420 requires their absence), while
+    files that mix namespace declarations with real code (e.g. package-level
+    API imports) should only have the declaration *stripped*.
+
+    Allows comments, blank lines, try/except wrappers, and encoding cookies
+    alongside the declaration — these are all part of the boilerplate.
     """
     if not has_namespace_declaration(content):
         return False
@@ -82,10 +101,17 @@ def is_only_namespace_init(content: str) -> bool:
 def remove_namespace_declaration(content: str) -> str:
     """Remove namespace declarations from *content*, preserving other code.
 
+    Uses a line-by-line state machine rather than simple regex substitution
+    because declarations can span multiple lines in structured patterns
+    (try/except blocks, import + assignment pairs) and we need to remove
+    the entire construct — including surrounding blank lines — without
+    leaving awkward whitespace gaps.
+
     Handles:
     - Simple single-line declarations
-    - try/except ImportError wrappers around pkg_resources
-    - pkgutil import + __path__ assignment pairs
+    - try/except ImportError wrappers around pkg_resources (very common in
+      Plone ecosystem — the try/except was needed for editable installs)
+    - pkgutil import + ``__path__`` assignment pairs (always appear together)
     """
     lines = content.splitlines(keepends=True)
     result: list[str] = []
@@ -144,7 +170,14 @@ def remove_namespace_declaration(content: str) -> str:
 def _collect_try_except_block(lines: list[str], start: int) -> int | None:
     """Return the number of lines in a try/except block starting at *start*.
 
-    Returns None if it doesn't look like a simple try/except/pass block.
+    Many Plone packages wrap the pkg_resources declaration in
+    ``try: ... except ImportError: pass`` so the package still works
+    when installed without pkg_resources.  We need to detect the full
+    block boundary so ``remove_namespace_declaration`` can strip the
+    entire construct, not just the inner declaration line.
+
+    Returns None if the structure doesn't look like a simple try/except
+    block (e.g. has an else/finally clause or complex body).
     """
     if start >= len(lines):
         return None
@@ -184,10 +217,15 @@ def _is_indented(line: str) -> bool:
 def find_namespace_init_files(
     project_dir: Path,
 ) -> list[tuple[Path, bool]]:
-    """Find __init__.py files with namespace declarations.
+    """Find ``__init__.py`` files with namespace declarations.
 
-    Returns list of (path, delete_entirely) tuples.
-    delete_entirely is True when the file contains only namespace declarations.
+    Walks the project tree to find all namespace init files, skipping
+    build artifacts (``.egg-info``, ``build/``, ``dist/``) and hidden
+    directories that should never be migrated.
+
+    Returns list of ``(path, delete_entirely)`` tuples.  The boolean
+    tells the caller whether to *delete* the file (namespace-only) or
+    *edit* it (mixed content) — see ``is_only_namespace_init``.
     """
     results = []
     for init_file in sorted(project_dir.rglob("__init__.py")):
@@ -205,7 +243,16 @@ def find_namespace_init_files(
 
 
 def clean_setup_py_namespaces(project_dir: Path, dry_run: bool = False) -> bool:
-    """Remove namespace_packages and related setup_requires from setup.py."""
+    """Remove ``namespace_packages`` and related ``setup_requires`` from setup.py.
+
+    Uses AST to *verify* the keyword exists (reliable detection), then
+    does text-level removal (preserves formatting).  Pure-AST rewriting
+    would lose comments and whitespace; pure-regex could false-positive
+    on commented-out code.  The hybrid approach gives us the best of both.
+
+    Also removes ``setup_requires=['setuptools']`` because that dependency
+    only existed to support the pkg_resources namespace mechanism.
+    """
     setup_py = project_dir / "setup.py"
     if not setup_py.exists():
         return False
@@ -243,7 +290,13 @@ def clean_setup_py_namespaces(project_dir: Path, dry_run: bool = False) -> bool:
 
 
 def clean_setup_cfg_namespaces(project_dir: Path, dry_run: bool = False) -> bool:
-    """Remove namespace_packages from setup.cfg [options]."""
+    """Remove ``namespace_packages`` from setup.cfg ``[options]``.
+
+    The ``namespace_packages`` option in setup.cfg has no PEP 621
+    equivalent — it must simply be removed.  The regex handles
+    continuation lines (indented values on subsequent lines) that
+    are common in multi-namespace packages.
+    """
     setup_cfg = project_dir / "setup.cfg"
     if not setup_cfg.exists():
         return False
@@ -265,7 +318,11 @@ def clean_setup_cfg_namespaces(project_dir: Path, dry_run: bool = False) -> bool
 
 
 def _is_setup_call(node: ast.Call) -> bool:
-    """Check if an AST Call node is a setup() call."""
+    """Check if an AST Call node is a ``setup()`` call.
+
+    Matches both bare ``setup(...)`` and qualified ``setuptools.setup(...)``
+    because Plone packages use both import styles.
+    """
     func = node.func
     if isinstance(func, ast.Name) and func.id == "setup":
         return True
@@ -275,9 +332,13 @@ def _is_setup_call(node: ast.Call) -> bool:
 
 
 def _remove_setup_kwarg(content: str, kwarg_name: str) -> str:
-    """Remove a keyword argument from a setup() call in source text.
+    """Remove a keyword argument from a ``setup()`` call in source text.
 
-    Handles single-line and multi-line list values.
+    Uses cascading regex patterns (single-line list, multi-line list,
+    simple value) because setup.py files in the wild use all three
+    formats.  Each pattern is tried in order; the first match wins.
+    This is intentionally text-level (not AST-based) to preserve the
+    surrounding formatting and comments.
     """
     # Pattern: kwarg_name=[...] or kwarg_name=<value>, possibly multi-line
     # We match from kwarg_name= to the closing bracket/comma
@@ -318,7 +379,16 @@ def migrate_namespaces(
 ) -> dict:
     """Run the full namespace migration.
 
-    Returns dict with 'deleted_files', 'modified_files' lists.
+    Processes ``__init__.py`` files first, then cleans setup.py/setup.cfg.
+    This order doesn't strictly matter for correctness, but it ensures
+    that if the process is interrupted, the ``__init__.py`` files (the
+    most important part) are already fixed.
+
+    This phase is designed to run *before* the packaging migration
+    (Phase 8), so that ``namespace_packages`` is already gone from
+    setup.py by the time it gets parsed for pyproject.toml generation.
+
+    Returns dict with ``deleted_files``, ``modified_files`` lists.
     """
     deleted: list[Path] = []
     modified: list[Path] = []

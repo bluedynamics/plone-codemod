@@ -1,8 +1,18 @@
 """Migrate setup.py/setup.cfg to pyproject.toml (PEP 621).
 
-Parses setup.py using AST and/or setup.cfg using configparser,
-extracts all metadata and configuration, and generates a
-PEP 621 compliant pyproject.toml with hatchling build backend.
+Plone packages traditionally use setup.py (imperative) or setup.cfg
+(declarative) for packaging metadata.  PEP 621 standardizes metadata
+in pyproject.toml, and modern build backends (hatchling, flit) require
+it.  This module automates the conversion so developers don't have to
+manually translate hundreds of setup() kwargs.
+
+Uses hatchling as the target build backend because it handles src-layout,
+namespace packages (PEP 420), and dynamic versioning via hatch-vcs
+out of the box — all common patterns in the Plone ecosystem.
+
+The migration also converts legacy tool configurations (flake8, isort,
+pycodestyle) to their ruff equivalents, since ruff supersedes these
+tools and its config lives natively in pyproject.toml.
 """
 
 from pathlib import Path
@@ -21,8 +31,14 @@ import tomlkit
 def parse_setup_py(path: Path) -> dict:
     """Extract metadata from setup.py using AST parsing.
 
-    Returns a dict with keys matching PEP 621 / setup() keyword arguments.
-    Values that cannot be statically resolved are stored as warnings.
+    AST parsing (rather than executing setup.py) is essential because
+    setup.py files often import from the package itself or have side
+    effects — executing them would require a full build environment.
+    The trade-off is that dynamic expressions (e.g. ``version=get_version()``)
+    cannot be resolved; these are collected as warnings so the user
+    knows what to fix manually.
+
+    Returns a dict with keys matching setup() keyword arguments.
     """
     content = path.read_text(encoding="utf-8")
     try:
@@ -42,7 +58,14 @@ def parse_setup_py(path: Path) -> dict:
 
 
 def _collect_module_vars(tree: ast.Module) -> dict:
-    """Collect simple module-level variable assignments."""
+    """Collect simple module-level variable assignments.
+
+    Many setup.py files define ``VERSION = "1.0"`` or
+    ``LONG_DESCRIPTION = open('README.rst').read()`` at module level
+    and then reference these variables inside the setup() call.  By
+    collecting them first we can resolve ``ast.Name`` references during
+    keyword extraction.
+    """
     module_vars: dict = {}
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
@@ -54,11 +77,21 @@ def _collect_module_vars(tree: ast.Module) -> dict:
     return module_vars
 
 
-_UNRESOLVED = object()
+_UNRESOLVED = object()  # Sentinel — identity-compared, never equal to real values.
 
 
 def _eval_node(node: ast.expr, module_vars: dict) -> object:
-    """Try to statically evaluate an AST node to a Python value."""
+    """Try to statically evaluate an AST node to a Python value.
+
+    Returns ``_UNRESOLVED`` for anything that cannot be determined at
+    parse time (function calls, complex expressions, etc.).  Using a
+    sentinel object instead of None lets us distinguish "resolved to None"
+    from "could not resolve".
+
+    Covers the patterns actually seen in Plone setup.py files:
+    constants, variables, lists, dicts, ``dict()``, ``find_packages()``,
+    string concatenation, and ``open(...).read()`` file references.
+    """
     if isinstance(node, ast.Constant):
         return node.value
 
@@ -127,6 +160,12 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
 
 
 def _is_find_packages(node: ast.Call) -> bool:
+    """Detect ``find_packages()`` / ``find_namespace_packages()`` calls.
+
+    The return value from these calls can't be statically evaluated to
+    a package list, but we can record the ``where`` argument to configure
+    hatchling's ``[tool.hatch.build.targets.wheel]`` packages path.
+    """
     func = node.func
     if isinstance(func, ast.Name) and func.id == "find_packages":
         return True
@@ -138,7 +177,12 @@ def _is_find_packages(node: ast.Call) -> bool:
 
 
 def _detect_file_read_chain(node: ast.Call) -> str | None:
-    """Detect open('file').read() or Path('file').read_text() patterns."""
+    """Detect ``open('file').read()`` or ``Path('file').read_text()`` patterns.
+
+    Many setup.py files use ``long_description=open('README.rst').read()``.
+    We can't evaluate this at parse time, but we can extract the filename
+    and use it as the ``readme`` field in pyproject.toml.
+    """
     if isinstance(node.func, ast.Attribute) and node.func.attr in ("read", "read_text"):
         inner = node.func.value
         if isinstance(inner, ast.Call):
@@ -154,6 +198,7 @@ def _detect_file_read_chain(node: ast.Call) -> str | None:
 
 
 def _is_setup_call(node: ast.Call) -> bool:
+    """Match both ``setup(...)`` and ``setuptools.setup(...)``."""
     func = node.func
     if isinstance(func, ast.Name) and func.id == "setup":
         return True
@@ -163,7 +208,12 @@ def _is_setup_call(node: ast.Call) -> bool:
 
 
 def _extract_setup_kwargs(node: ast.Call, module_vars: dict) -> dict:
-    """Extract keyword arguments from a setup() call."""
+    """Extract keyword arguments from a ``setup()`` call.
+
+    Unresolvable values are recorded in ``_warnings`` rather than
+    raising, so the migration can proceed with partial metadata and
+    the user gets actionable feedback about what to fix.
+    """
     result: dict = {}
     result["_warnings"] = []
 
@@ -186,7 +236,13 @@ def _extract_setup_kwargs(node: ast.Call, module_vars: dict) -> dict:
 
 
 def parse_setup_cfg(path: Path) -> dict:
-    """Extract metadata and options from setup.cfg."""
+    """Extract metadata and options from setup.cfg.
+
+    Uses ``configparser`` because setup.cfg is an INI-format file.
+    Handles the setuptools-specific conventions: multi-line lists in
+    ``install_requires``, the ``find:``/``find_namespace:`` shorthand
+    for packages, and the ``[options.packages.find]`` sub-section.
+    """
     cfg = configparser.ConfigParser()
     cfg.read(str(path), encoding="utf-8")
 
@@ -262,9 +318,16 @@ def _parse_cfg_list(value: str) -> list[str]:
 def convert_tool_configs(path: Path) -> dict:
     """Extract tool configuration sections from setup.cfg and convert them.
 
-    Returns a dict suitable for merging into pyproject.toml's [tool.*] sections.
-    Flake8, isort, pycodestyle → ruff equivalents.
-    Pytest, coverage → native pyproject.toml sections.
+    With the move to pyproject.toml, tool configs that lived in setup.cfg
+    need a new home.  Rather than blindly copying flake8/isort/pycodestyle
+    sections, we convert them to ruff equivalents — ruff supersedes all
+    three tools and is the standard linter in the modern Plone stack.
+
+    Pytest and coverage configs are moved as-is to their native
+    ``[tool.pytest.ini_options]`` / ``[tool.coverage.*]`` sections.
+    ``[bdist_wheel]`` is dropped because PEP 517 handles wheel building.
+
+    Returns a dict suitable for merging into pyproject.toml's ``[tool.*]``.
     """
     cfg = configparser.ConfigParser()
     cfg.read(str(path), encoding="utf-8")
@@ -316,7 +379,11 @@ def convert_tool_configs(path: Path) -> dict:
 
 
 def _convert_flake8(cfg: configparser.ConfigParser) -> tuple[dict, dict]:
-    """Convert [flake8] to ruff top-level and ruff.lint settings."""
+    """Convert ``[flake8]`` to ruff top-level and ``ruff.lint`` settings.
+
+    ``max-line-length`` maps to ruff's top-level ``line-length`` (not
+    lint-specific), while ``ignore``/``select`` map to ``ruff.lint.*``.
+    """
     ruff: dict = {}
     ruff_lint: dict = {}
 
@@ -336,7 +403,12 @@ def _convert_flake8(cfg: configparser.ConfigParser) -> tuple[dict, dict]:
 
 
 def _convert_isort(cfg: configparser.ConfigParser) -> dict:
-    """Convert [isort] to ruff.lint.isort settings."""
+    """Convert ``[isort]`` to ``ruff.lint.isort`` settings.
+
+    Key names are translated from Python underscore style to ruff's
+    kebab-case.  The ``profile`` option has no ruff equivalent and is
+    silently dropped.
+    """
     result: dict = {}
     key_map = {
         "known_first_party": "known-first-party",
@@ -436,7 +508,10 @@ def _convert_coverage_section(cfg: configparser.ConfigParser, section: str) -> d
 def merge_metadata(setup_py_data: dict, setup_cfg_data: dict) -> dict:
     """Merge metadata from setup.py and setup.cfg.
 
-    setup.cfg takes precedence for overlapping keys (matching setuptools behavior).
+    setup.cfg takes precedence for overlapping keys.  This matches
+    setuptools' own behavior: when both files define the same field,
+    setup.cfg wins.  Many Plone packages define some metadata in
+    setup.py and override or extend it in setup.cfg.
     """
     result = dict(setup_py_data)
     for key, val in setup_cfg_data.items():
@@ -456,6 +531,11 @@ def generate_pyproject_toml(
     tool_configs: dict | None = None,
 ) -> str:
     """Generate pyproject.toml content from extracted metadata.
+
+    Uses ``tomlkit`` (not ``tomli_w``) because tomlkit preserves comments,
+    formatting, and ordering when merging into an existing file — important
+    when the project already has a pyproject.toml with ``[tool.ruff]`` or
+    other manual configuration.
 
     If existing_pyproject is given, merges into it preserving existing sections.
     """
@@ -533,7 +613,16 @@ def generate_pyproject_toml(
 
 
 def _populate_project_table(project: tomlkit.items.Table, metadata: dict) -> None:
-    """Populate the [project] table with metadata."""
+    """Populate the ``[project]`` table with PEP 621 metadata.
+
+    Translates setup() keyword names to their PEP 621 equivalents
+    (e.g. ``install_requires`` -> ``dependencies``,
+    ``python_requires`` -> ``requires-python``).
+
+    ``setuptools`` is stripped from runtime dependencies because it's
+    a build-time dependency, not a runtime one — having it in
+    ``install_requires`` was a legacy pattern from namespace packages.
+    """
     name = metadata.get("name", "")
     if name:
         project.add("name", name)
@@ -614,7 +703,13 @@ def _populate_project_table(project: tomlkit.items.Table, metadata: dict) -> Non
 
 
 def _is_dynamic_version(metadata: dict) -> bool:
-    """Check if version should be dynamic (from VCS/file)."""
+    """Check if version should be dynamic (from VCS or file read).
+
+    When the version isn't a simple string literal (or is absent),
+    we configure ``dynamic = ["version"]`` with hatch-vcs so the
+    version is derived from git tags at build time — a common and
+    recommended pattern for Plone packages.
+    """
     version = metadata.get("version")
     if version is None:
         return True
@@ -642,7 +737,13 @@ def _detect_readme(metadata: dict) -> str | None:
 
 
 def _normalize_license(license_val: str) -> str:
-    """Normalize license string to SPDX identifier where possible."""
+    """Normalize license string to SPDX identifier where possible.
+
+    PEP 639 requires SPDX license expressions in pyproject.toml.
+    Old setup.py files use free-form strings ("GPL", "GNU General
+    Public License v2 (GPLv2)", etc.) that must be mapped to the
+    corresponding SPDX identifier.
+    """
     mapping = {
         "gpl": "GPL-2.0-only",
         "gpl2": "GPL-2.0-only",
@@ -662,7 +763,17 @@ def _normalize_license(license_val: str) -> str:
 
 
 def _add_entry_points(doc: tomlkit.TOMLDocument, metadata: dict) -> None:
-    """Add entry points to the pyproject.toml document."""
+    """Add entry points to the pyproject.toml document.
+
+    PEP 621 splits entry points into three locations:
+    - ``console_scripts`` -> ``[project.scripts]``
+    - ``gui_scripts`` -> ``[project.gui-scripts]``
+    - everything else -> ``[project.entry-points.GROUP]``
+
+    The ``z3c.autoinclude.plugin`` group is particularly important for
+    Plone — it's how add-ons register themselves for automatic ZCML
+    loading.
+    """
     entry_points = metadata.get("entry_points")
     if not entry_points:
         return
@@ -704,13 +815,16 @@ def _add_entry_points(doc: tomlkit.TOMLDocument, metadata: dict) -> None:
 def _parse_entry_points_string(text: str) -> dict:
     """Parse INI-style entry_points string format.
 
-    Example input:
-        '''
+    Older setup.py files pass ``entry_points`` as a multi-line string
+    rather than a dict.  The format is identical to INI/configparser
+    syntax, so we reuse ``configparser`` to parse it.
+
+    Example input::
+
         [console_scripts]
         my-command = my_package.cli:main
         [z3c.autoinclude.plugin]
         target = plone
-        '''
     """
     cfg = configparser.ConfigParser()
     cfg.read_string(text)
@@ -726,7 +840,13 @@ def _parse_entry_points_string(text: str) -> dict:
 def _ensure_hatch_wheel_config(
     doc: tomlkit.TOMLDocument, metadata: dict, where: str
 ) -> None:
-    """Add [tool.hatch.build.targets.wheel] with packages config."""
+    """Add ``[tool.hatch.build.targets.wheel]`` with packages config.
+
+    Hatchling needs to know where to find packages when using src-layout
+    (``packages = ["src/plone"]``).  Without this, ``hatch build`` would
+    fail to find the package directory.  We derive the top-level package
+    name from the project name (e.g. ``plone.app.foo`` -> ``plone``).
+    """
     tool = doc.setdefault("tool", tomlkit.table())
     hatch = tool.setdefault("hatch", tomlkit.table())
     build = hatch.setdefault("build", tomlkit.table())
@@ -745,7 +865,12 @@ def _ensure_hatch_wheel_config(
 
 
 def _dict_to_tomlkit(d: dict) -> tomlkit.items.Table:
-    """Recursively convert a dict to a tomlkit Table."""
+    """Recursively convert a plain dict to a tomlkit Table.
+
+    Needed because tomlkit requires its own container types for
+    serialization — plain dicts would lose type information
+    (booleans serialized as strings, etc.).
+    """
     table = tomlkit.table()
     for key, val in d.items():
         if isinstance(val, dict):
@@ -770,7 +895,13 @@ def _dict_to_tomlkit(d: dict) -> tomlkit.items.Table:
 
 
 def cleanup_old_files(project_dir: Path, dry_run: bool = False) -> list[Path]:
-    """Delete setup.py, setup.cfg, MANIFEST.in after migration."""
+    """Delete setup.py, setup.cfg, MANIFEST.in after migration.
+
+    These files are no longer needed once pyproject.toml is in place.
+    MANIFEST.in is also removed because hatchling uses its own inclusion
+    logic (and respects .gitignore).  Keeping them around would cause
+    confusion about which file is the source of truth.
+    """
     deleted = []
     for name in ("setup.py", "setup.cfg", "MANIFEST.in"):
         filepath = project_dir / name
@@ -790,9 +921,16 @@ def migrate_packaging(
     project_dir: Path,
     dry_run: bool = False,
 ) -> dict:
-    """Run the full setup.py → pyproject.toml migration.
+    """Run the full setup.py -> pyproject.toml migration.
 
-    Returns dict with 'created_files', 'deleted_files', 'warnings'.
+    The migration is skipped entirely if an existing pyproject.toml already
+    has a ``[project]`` section — this prevents overwriting a manually
+    written or previously migrated configuration.
+
+    Reads from both setup.py (AST) and setup.cfg (configparser), merges
+    the results, generates pyproject.toml, and deletes the old files.
+
+    Returns dict with ``created_files``, ``deleted_files``, ``warnings``.
     """
     result_warnings: list[str] = []
     created: list[Path] = []
