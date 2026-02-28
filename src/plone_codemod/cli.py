@@ -177,6 +177,7 @@ def run_audit(source_dir: Path) -> None:
 
 def run_namespace_migration(
     project_dir: Path,
+    source_dir: Path,
     dry_run: bool = False,
 ) -> None:
     """Phase 7: Migrate to PEP 420 implicit namespace packages.
@@ -184,14 +185,14 @@ def run_namespace_migration(
     Lazy-imports namespace_migrator to avoid loading it (and its
     dependencies) when the ``--namespaces`` flag is not used.
 
-    Operates on the *project* directory (where setup.py lives),
-    not the source directory, because it needs to modify setup.py
-    and setup.cfg alongside the ``__init__.py`` files.
+    *project_dir* is where setup.py/setup.cfg live (for cleanup).
+    *source_dir* scopes the ``__init__.py`` search to the actual
+    source tree, preventing accidental matches in sibling packages.
     """
     print("\n=== Phase 7: Namespace package migration (PEP 420) ===")
     from plone_codemod.namespace_migrator import migrate_namespaces
 
-    result = migrate_namespaces(project_dir, dry_run=dry_run)
+    result = migrate_namespaces(project_dir, source_dir=source_dir, dry_run=dry_run)
     prefix = "[DRY RUN] Would delete" if dry_run else "Deleted"
     for f in result["deleted_files"]:
         print(f"  {prefix}: {f}")
@@ -242,6 +243,26 @@ def _report(modified: list[Path], label: str, dry_run: bool) -> None:
         print(f"  No {label}s needed changes.")
     else:
         print(f"  {prefix} {len(modified)} {label}(s).")
+
+
+def _detect_project_dir(source_dir: Path) -> Path:
+    """Find the project root by walking up from *source_dir*.
+
+    Looks for ``setup.py``, ``setup.cfg``, or ``pyproject.toml`` starting
+    at the resolved *source_dir* and walking toward the filesystem root.
+    Falls back to *source_dir* itself if no marker file is found — this
+    avoids the old behaviour of blindly using ``.parent`` which could
+    point to a directory containing unrelated packages.
+    """
+    candidate = source_dir.resolve()
+    for directory in [candidate, *candidate.parents]:
+        if (
+            (directory / "setup.py").exists()
+            or (directory / "setup.cfg").exists()
+            or (directory / "pyproject.toml").exists()
+        ):
+            return directory
+    return candidate
 
 
 def main():
@@ -328,7 +349,7 @@ Examples:
     if args.bootstrap:
         print("Bootstrap: ENABLED (BS3 → BS5 migration)")
 
-    project_dir = args.project_dir or args.source_dir.resolve().parent
+    project_dir = args.project_dir or _detect_project_dir(args.source_dir)
     if args.namespaces:
         print(f"Namespaces: ENABLED (PEP 420 migration, project: {project_dir})")
     if args.packaging:
@@ -355,7 +376,7 @@ Examples:
     # Phase 7: Namespace migration (runs before packaging so namespace_packages
     # is cleaned from setup.py before pyproject.toml generation)
     if args.namespaces:
-        run_namespace_migration(project_dir, args.dry_run)
+        run_namespace_migration(project_dir, args.source_dir, args.dry_run)
 
     # Phase 8: Packaging migration
     if args.packaging:

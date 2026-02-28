@@ -375,7 +375,7 @@ def _remove_setup_kwarg(content: str, kwarg_name: str) -> str:
 
 def migrate_namespaces(
     project_dir: Path,
-    _source_dir: Path | None = None,
+    source_dir: Path | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Run the full namespace migration.
@@ -384,6 +384,11 @@ def migrate_namespaces(
     This order doesn't strictly matter for correctness, but it ensures
     that if the process is interrupted, the ``__init__.py`` files (the
     most important part) are already fixed.
+
+    *source_dir* scopes the ``__init__.py`` search to the actual source
+    tree, preventing accidental matches in unrelated packages when
+    *project_dir* is a broad parent directory.  Falls back to
+    *project_dir* when not given.
 
     This phase is designed to run *before* the packaging migration
     (Phase 8), so that ``namespace_packages`` is already gone from
@@ -395,7 +400,8 @@ def migrate_namespaces(
     modified: list[Path] = []
 
     # 1. Find and process __init__.py files
-    init_files = find_namespace_init_files(project_dir)
+    search_dir = source_dir if source_dir is not None else project_dir
+    init_files = find_namespace_init_files(search_dir)
     for filepath, delete_entirely in init_files:
         if delete_entirely:
             if not dry_run:
