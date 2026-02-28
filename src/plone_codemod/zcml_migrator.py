@@ -7,14 +7,15 @@ migration_config.yaml mappings.
 GenericSetup XML (registry.xml, types/*.xml) also contains dotted name
 references and view name references that need updating.
 """
-from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "migration_config.yaml"
+CONFIG_PATH = Path(__file__).resolve().parent / "migration_config.yaml"
 
 # ZCML/XML attributes that may contain Python dotted names
 DOTTED_NAME_ATTRS = [
@@ -34,12 +35,12 @@ DOTTED_NAME_ATTRS = [
 ]
 
 
-def load_config(config_path: Path = CONFIG_PATH) -> dict:
+def load_config(config_path: Path = CONFIG_PATH) -> dict[str, Any]:
     with open(config_path) as fh:
         return yaml.safe_load(fh)
 
 
-def _build_replacements(entries: list[dict]) -> list[tuple[str, str]]:
+def _build_replacements(entries: list[dict[str, str]]) -> list[tuple[str, str]]:
     """Build sorted replacement pairs (longest old first to avoid partial matches)."""
     pairs = [(e["old"], e["new"]) for e in entries]
     pairs.sort(key=lambda p: len(p[0]), reverse=True)
@@ -77,7 +78,9 @@ def migrate_genericsetup_content(
     return result
 
 
-def migrate_file(filepath: Path, transformer, **kwargs) -> bool:
+def migrate_file(
+    filepath: Path, transformer: Callable[..., str], **kwargs: Any
+) -> bool:
     """Read file, apply transformer, write back if changed. Returns True if modified."""
     content = filepath.read_text(encoding="utf-8")
     new_content = transformer(content, **kwargs)

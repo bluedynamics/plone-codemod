@@ -1,16 +1,15 @@
 """Tests for the ZCML and GenericSetup XML migrator."""
-import pytest
-from pathlib import Path
-import tempfile
 
-from zcml.zcml_migrator import (
-    migrate_zcml_content,
-    migrate_genericsetup_content,
-    migrate_zcml_files,
-    migrate_genericsetup_files,
-    _build_replacements,
-    load_config,
-)
+from pathlib import Path
+from plone_codemod.zcml_migrator import _build_replacements
+from plone_codemod.zcml_migrator import load_config
+from plone_codemod.zcml_migrator import migrate_genericsetup_content
+from plone_codemod.zcml_migrator import migrate_genericsetup_files
+from plone_codemod.zcml_migrator import migrate_zcml_content
+from plone_codemod.zcml_migrator import migrate_zcml_files
+
+import pytest
+import tempfile
 
 
 @pytest.fixture
@@ -38,25 +37,27 @@ class TestZCMLMigration:
     """Test ZCML dotted name replacements."""
 
     def test_INavigationRoot_in_for_attribute(self, zcml_replacements):
-        before = '<adapter for="plone.app.layout.navigation.interfaces.INavigationRoot" />'
+        before = (
+            '<adapter for="plone.app.layout.navigation.interfaces.INavigationRoot" />'
+        )
         after = migrate_zcml_content(before, zcml_replacements)
-        assert 'plone.base.interfaces.siteroot.INavigationRoot' in after
-        assert 'plone.app.layout.navigation' not in after
+        assert "plone.base.interfaces.siteroot.INavigationRoot" in after
+        assert "plone.app.layout.navigation" not in after
 
     def test_IPatternsSettings_in_provides(self, zcml_replacements):
         before = '<adapter provides="Products.CMFPlone.interfaces.IPatternsSettings" />'
         after = migrate_zcml_content(before, zcml_replacements)
-        assert 'plone.base.interfaces.patterns.IPatternsSettings' in after
+        assert "plone.base.interfaces.patterns.IPatternsSettings" in after
 
     def test_controlpanel_prefix(self, zcml_replacements):
         before = '<record interface="Products.CMFPlone.interfaces.controlpanel.IEditingSchema" />'
         after = migrate_zcml_content(before, zcml_replacements)
-        assert 'plone.base.interfaces.controlpanel.IEditingSchema' in after
+        assert "plone.base.interfaces.controlpanel.IEditingSchema" in after
 
     def test_language_schema_special_case(self, zcml_replacements):
         before = '<record interface="Products.CMFPlone.interfaces.controlpanel.ILanguageSchema" />'
         after = migrate_zcml_content(before, zcml_replacements)
-        assert 'plone.i18n.interfaces.ILanguageSchema' in after
+        assert "plone.i18n.interfaces.ILanguageSchema" in after
 
     def test_multiple_replacements_in_one_file(self, zcml_replacements):
         before = """<configure>
@@ -69,8 +70,8 @@ class TestZCMLMigration:
         factory=".other.OtherAdapter" />
 </configure>"""
         after = migrate_zcml_content(before, zcml_replacements)
-        assert after.count('plone.base.interfaces.siteroot.INavigationRoot') == 2
-        assert 'plone.base.interfaces.patterns.IPatternsSettings' in after
+        assert after.count("plone.base.interfaces.siteroot.INavigationRoot") == 2
+        assert "plone.base.interfaces.patterns.IPatternsSettings" in after
 
     def test_no_change_when_nothing_matches(self, zcml_replacements):
         before = '<adapter for="my.custom.IMyInterface" />'
@@ -103,8 +104,8 @@ class TestGenericSetupMigration:
   </records>
 </registry>"""
         after = migrate_genericsetup_content(before, gs_replacements, view_replacements)
-        assert 'plone.base.interfaces.controlpanel.IEditingSchema' in after
-        assert 'Products.CMFPlone' not in after
+        assert "plone.base.interfaces.controlpanel.IEditingSchema" in after
+        assert "Products.CMFPlone" not in after
 
     def test_folder_summary_view_replacement(self, gs_replacements, view_replacements):
         before = """<object name="Folder">

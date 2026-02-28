@@ -1,15 +1,14 @@
 """Tests for the page template and Bootstrap migrators."""
-import pytest
-from pathlib import Path
-import tempfile
 
-from templates.pt_migrator import (
-    migrate_pt_content,
-    migrate_bootstrap_content,
-    migrate_pt_files,
-    migrate_bootstrap_files,
-    load_config,
-)
+from pathlib import Path
+from plone_codemod.pt_migrator import load_config
+from plone_codemod.pt_migrator import migrate_bootstrap_content
+from plone_codemod.pt_migrator import migrate_bootstrap_files
+from plone_codemod.pt_migrator import migrate_pt_content
+from plone_codemod.pt_migrator import migrate_pt_files
+
+import pytest
+import tempfile
 
 
 @pytest.fixture

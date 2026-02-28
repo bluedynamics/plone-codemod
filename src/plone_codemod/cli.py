@@ -10,25 +10,26 @@ Orchestrates all migration phases:
 6. Audit (semgrep, optional)
 
 Usage:
-    python runner.py ./src/
-    python runner.py ./src/ --dry-run
-    python runner.py ./src/ --bootstrap
-    python runner.py ./src/ --config custom_config.yaml
-    python runner.py ./src/ --skip-python --skip-audit
+    plone-codemod ./src/
+    plone-codemod ./src/ --dry-run
+    plone-codemod ./src/ --bootstrap
+    plone-codemod ./src/ --config custom_config.yaml
+    plone-codemod ./src/ --skip-python --skip-audit
 """
-from __future__ import annotations
+
+from pathlib import Path
+from plone_codemod.pt_migrator import migrate_bootstrap_files
+from plone_codemod.pt_migrator import migrate_pt_files
+from plone_codemod.zcml_migrator import migrate_genericsetup_files
+from plone_codemod.zcml_migrator import migrate_zcml_files
 
 import argparse
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
-# Allow running from the plone-codemod directory
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from templates.pt_migrator import migrate_bootstrap_files, migrate_pt_files
-from zcml.zcml_migrator import migrate_genericsetup_files, migrate_zcml_files
+_PKG_DIR = Path(__file__).resolve().parent
 
 
 def run_python_migration(
@@ -39,7 +40,6 @@ def run_python_migration(
     """Run libcst-based Python import migration."""
     print("\n=== Phase 1: Python import migration (libcst) ===")
 
-    # Check that libcst is available
     try:
         import libcst  # noqa: F401
     except ImportError:
@@ -54,18 +54,8 @@ def run_python_migration(
             [sys.executable, "-m", "libcst.tool", "initialize", str(source_dir)],
             check=False,
         )
-        # Add our codemods directory to the module search path
-        if codemod_yaml.exists():
-            content = codemod_yaml.read_text()
-            if "modules" not in content:
-                codemod_yaml.write_text(
-                    content.rstrip()
-                    + f"\nmodules:\n  - '{Path(__file__).resolve().parent}'\n"
-                )
 
-    # Use the built-in RenameCommand for each mapping
-    # This is the most reliable approach — one rename at a time
-    from codemods.import_migrator import load_mappings
+    from plone_codemod.import_migrator import load_mappings
 
     mappings = load_mappings(config_path)
     print(f"  Loaded {len(mappings)} import mappings from {config_path}")
@@ -79,7 +69,6 @@ def run_python_migration(
             seen.add(key)
             unique_mappings.append(mp)
 
-    # Run our custom codemod which handles all mappings in a single pass
     print(f"  Running PloneImportMigrator on {source_dir} ...")
 
     if dry_run:
@@ -97,10 +86,9 @@ def run_python_migration(
             "-m",
             "libcst.tool",
             "codemod",
-            "codemods.import_migrator.PloneImportMigrator",
+            "plone_codemod.import_migrator.PloneImportMigrator",
             str(source_dir),
         ],
-        cwd=str(Path(__file__).resolve().parent),
         capture_output=True,
         text=True,
     )
@@ -157,7 +145,7 @@ def run_bootstrap_migration(
 def run_audit(source_dir: Path) -> None:
     """Use semgrep to find remaining unmigrated patterns."""
     print("\n=== Phase 6: Audit (semgrep) ===")
-    semgrep_rules = Path(__file__).resolve().parent / "semgrep_rules"
+    semgrep_rules = _PKG_DIR / "semgrep_rules"
 
     if not shutil.which("semgrep"):
         print("  semgrep not installed. Skipping audit.")
@@ -179,7 +167,6 @@ def run_audit(source_dir: Path) -> None:
     if result.stdout:
         print(result.stdout)
     if result.returncode != 0 and result.stderr:
-        # semgrep prints info to stderr even on success
         for line in result.stderr.splitlines():
             if "error" in line.lower() or "finding" in line.lower():
                 print(f"  {line}")
@@ -201,13 +188,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python runner.py ./src/                         # Full migration (no BS)
-    python runner.py ./src/ --dry-run               # Preview changes
-    python runner.py ./src/ --bootstrap             # Include Bootstrap 3→5
-    python runner.py ./src/ --bootstrap --dry-run   # Preview with Bootstrap
-    python runner.py ./src/ --skip-python           # Only ZCML + XML + PT
-    python runner.py ./src/ --skip-audit            # Skip semgrep audit
-    python runner.py ./src/ --config my_config.yaml # Custom config
+    plone-codemod ./src/                         # Full migration (no BS)
+    plone-codemod ./src/ --dry-run               # Preview changes
+    plone-codemod ./src/ --bootstrap             # Include Bootstrap 3→5
+    plone-codemod ./src/ --bootstrap --dry-run   # Preview with Bootstrap
+    plone-codemod ./src/ --skip-python           # Only ZCML + XML + PT
+    plone-codemod ./src/ --skip-audit            # Skip semgrep audit
+    plone-codemod ./src/ --config my_config.yaml # Custom config
         """,
     )
     parser.add_argument(
@@ -218,7 +205,7 @@ Examples:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path(__file__).resolve().parent / "migration_config.yaml",
+        default=_PKG_DIR / "migration_config.yaml",
         help="Path to migration_config.yaml (default: bundled config)",
     )
     parser.add_argument(
@@ -231,11 +218,19 @@ Examples:
         action="store_true",
         help="Enable Bootstrap 3→5 migration (opt-in, not run by default)",
     )
-    parser.add_argument("--skip-python", action="store_true", help="Skip Python import migration")
+    parser.add_argument(
+        "--skip-python", action="store_true", help="Skip Python import migration"
+    )
     parser.add_argument("--skip-zcml", action="store_true", help="Skip ZCML migration")
-    parser.add_argument("--skip-xml", action="store_true", help="Skip GenericSetup XML migration")
-    parser.add_argument("--skip-pt", action="store_true", help="Skip page template migration")
-    parser.add_argument("--skip-audit", action="store_true", help="Skip semgrep audit phase")
+    parser.add_argument(
+        "--skip-xml", action="store_true", help="Skip GenericSetup XML migration"
+    )
+    parser.add_argument(
+        "--skip-pt", action="store_true", help="Skip page template migration"
+    )
+    parser.add_argument(
+        "--skip-audit", action="store_true", help="Skip semgrep audit phase"
+    )
 
     args = parser.parse_args()
 
@@ -270,7 +265,9 @@ Examples:
 
     print("\n=== Done ===")
     print("Review changes with: git diff")
-    print("If satisfied, commit with: git add -A && git commit -m 'Migrate to Plone 6.x'")
+    print(
+        "If satisfied, commit with: git add -A && git commit -m 'Migrate to Plone 6.x'"
+    )
 
 
 if __name__ == "__main__":

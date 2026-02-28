@@ -6,25 +6,24 @@ Reads migration mappings from migration_config.yaml and rewrites:
 - Handles multi-line imports, aliased imports, mixed imports
 
 Usage with libcst CLI:
-    python -m libcst.tool codemod codemods.import_migrator.PloneImportMigrator .
+    python -m libcst.tool codemod plone_codemod.import_migrator.PloneImportMigrator .
 
 Usage programmatically:
-    from codemods.import_migrator import transform_code
+    from plone_codemod.import_migrator import transform_code
     new_source = transform_code(old_source)
 """
-from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from libcst.codemod import CodemodContext
+from libcst.codemod import VisitorBasedCodemodCommand
 from pathlib import Path
-from typing import Union
 
 import libcst as cst
-from libcst.codemod import CodemodContext, VisitorBasedCodemodCommand
 import yaml
 
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "migration_config.yaml"
+CONFIG_PATH = Path(__file__).resolve().parent / "migration_config.yaml"
 
 
 @dataclass(frozen=True)
@@ -45,12 +44,14 @@ def load_mappings(config_path: Path = CONFIG_PATH) -> list[ImportMapping]:
         new_parts = entry["new"].rsplit(".", 1)
         if len(old_parts) != 2 or len(new_parts) != 2:
             continue
-        mappings.append(ImportMapping(
-            old_module=old_parts[0],
-            old_name=old_parts[1],
-            new_module=new_parts[0],
-            new_name=new_parts[1],
-        ))
+        mappings.append(
+            ImportMapping(
+                old_module=old_parts[0],
+                old_name=old_parts[1],
+                new_module=new_parts[0],
+                new_name=new_parts[1],
+            )
+        )
     return mappings
 
 
@@ -98,11 +99,11 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
         self,
         original_node: cst.SimpleStatementLine,
         updated_node: cst.SimpleStatementLine,
-    ) -> Union[
-        cst.SimpleStatementLine,
-        cst.RemovalSentinel,
-        cst.FlattenSentinel[cst.BaseStatement],
-    ]:
+    ) -> (
+        cst.SimpleStatementLine
+        | cst.RemovalSentinel
+        | cst.FlattenSentinel[cst.BaseStatement]
+    ):
         """Handle import statement rewriting at the statement line level.
 
         This allows us to split one import line into multiple when names
@@ -182,15 +183,11 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
             cleaned = []
             for i, alias in enumerate(kept):
                 if i == len(kept) - 1:
-                    cleaned.append(alias.with_changes(
-                        comma=cst.MaybeSentinel.DEFAULT
-                    ))
+                    cleaned.append(alias.with_changes(comma=cst.MaybeSentinel.DEFAULT))
                 else:
                     cleaned.append(alias)
             result_stmts.append(
-                updated_node.with_changes(
-                    body=[orig_stmt.with_changes(names=cleaned)]
-                )
+                updated_node.with_changes(body=[orig_stmt.with_changes(names=cleaned)])
             )
 
         # Add new import statements for migrated names
@@ -200,9 +197,7 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
             cleaned = []
             for i, alias in enumerate(aliases):
                 if i == len(aliases) - 1:
-                    cleaned.append(alias.with_changes(
-                        comma=cst.MaybeSentinel.DEFAULT
-                    ))
+                    cleaned.append(alias.with_changes(comma=cst.MaybeSentinel.DEFAULT))
                 else:
                     cleaned.append(alias)
 
@@ -213,7 +208,9 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
             result_stmts.append(
                 cst.SimpleStatementLine(
                     body=[new_import],
-                    leading_lines=updated_node.leading_lines if not result_stmts else [],
+                    leading_lines=updated_node.leading_lines
+                    if not result_stmts
+                    else [],
                 )
             )
 
@@ -239,7 +236,7 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
     # -- helpers --
 
     @staticmethod
-    def _dotted(node) -> str | None:
+    def _dotted(node: cst.BaseExpression | None) -> str | None:
         if isinstance(node, cst.Attribute):
             parent = PloneImportMigrator._dotted(node.value)
             if parent is None:
@@ -250,9 +247,9 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
         return None
 
     @staticmethod
-    def _build_module(dotted: str) -> cst.BaseExpression:
+    def _build_module(dotted: str) -> cst.Attribute | cst.Name:
         parts = dotted.split(".")
-        node: cst.BaseExpression = cst.Name(parts[0])
+        node: cst.Attribute | cst.Name = cst.Name(parts[0])
         for part in parts[1:]:
             node = cst.Attribute(value=node, attr=cst.Name(part))
         return node

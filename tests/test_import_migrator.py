@@ -1,7 +1,6 @@
 """Tests for the libcst-based Python import migrator."""
-import pytest
 
-from codemods.import_migrator import transform_code
+from plone_codemod.import_migrator import transform_code
 
 
 class TestSimpleImportMigration:
@@ -28,9 +27,14 @@ class TestSimpleImportMigration:
         assert after == "from plone.base.navigationroot import get_navigation_root\n"
 
     def test_getNavigationRootObject(self):
-        before = "from plone.app.layout.navigation.root import getNavigationRootObject\n"
+        before = (
+            "from plone.app.layout.navigation.root import getNavigationRootObject\n"
+        )
         after = transform_code(before)
-        assert after == "from plone.base.navigationroot import get_navigation_root_object\n"
+        assert (
+            after
+            == "from plone.base.navigationroot import get_navigation_root_object\n"
+        )
 
     def test_INavigationRoot(self):
         before = "from plone.app.layout.navigation.interfaces import INavigationRoot\n"
@@ -59,7 +63,9 @@ class TestSimpleImportMigration:
 
     def test_language_schema_special_case(self):
         """ILanguageSchema goes to plone.i18n, NOT plone.base."""
-        before = "from Products.CMFPlone.interfaces.controlpanel import ILanguageSchema\n"
+        before = (
+            "from Products.CMFPlone.interfaces.controlpanel import ILanguageSchema\n"
+        )
         after = transform_code(before)
         assert after == "from plone.i18n.interfaces import ILanguageSchema\n"
 
@@ -122,7 +128,9 @@ class TestAliasedImports:
         assert "plone.base.utils" in after
 
     def test_alias_with_module_change(self):
-        before = "from plone.app.layout.navigation.root import getNavigationRoot as gnr\n"
+        before = (
+            "from plone.app.layout.navigation.root import getNavigationRoot as gnr\n"
+        )
         after = transform_code(before)
         assert "get_navigation_root as gnr" in after
         assert "plone.base.navigationroot" in after
@@ -154,9 +162,7 @@ class TestUsageSiteRenaming:
     def test_usage_not_renamed_when_aliased(self):
         """When imported with alias, usage sites keep the alias (no rename)."""
         before = (
-            "from Products.CMFPlone.utils import safe_unicode as su\n"
-            "\n"
-            "x = su(value)\n"
+            "from Products.CMFPlone.utils import safe_unicode as su\n\nx = su(value)\n"
         )
         after = transform_code(before)
         # The alias 'su' should still work
@@ -174,11 +180,7 @@ class TestUsageSiteRenaming:
 
     def test_no_rename_without_import(self):
         """Names not imported from old modules should not be renamed."""
-        before = (
-            "from mypackage import safe_unicode\n"
-            "\n"
-            "x = safe_unicode(value)\n"
-        )
+        before = "from mypackage import safe_unicode\n\nx = safe_unicode(value)\n"
         after = transform_code(before)
         # Should be unchanged
         assert after == before

@@ -36,37 +36,38 @@ Unlike simple `sed`/`find` scripts, plone-codemod uses [libcst](https://github.c
 ## Installation
 
 ```bash
-pip install libcst pyyaml
+pip install plone-codemod
+
+# Or with uv
+uv pip install plone-codemod
 
 # Optional: for audit phase
-pip install semgrep
+pip install plone-codemod[audit]
 ```
 
 ## Usage
 
 ```bash
-cd plone-codemod
-
 # Preview what would change (no files modified)
-python runner.py /path/to/your/src/ --dry-run
+plone-codemod /path/to/your/src/ --dry-run
 
 # Apply all migrations (without Bootstrap)
-python runner.py /path/to/your/src/
+plone-codemod /path/to/your/src/
 
 # Include Bootstrap 3→5 migration
-python runner.py /path/to/your/src/ --bootstrap
+plone-codemod /path/to/your/src/ --bootstrap
 
 # Preview Bootstrap changes
-python runner.py /path/to/your/src/ --bootstrap --dry-run
+plone-codemod /path/to/your/src/ --bootstrap --dry-run
 
 # Run only specific phases
-python runner.py /path/to/your/src/ --skip-python     # ZCML + XML + PT only
-python runner.py /path/to/your/src/ --skip-zcml        # Python + XML + PT only
-python runner.py /path/to/your/src/ --skip-pt          # Skip page templates
-python runner.py /path/to/your/src/ --skip-audit       # Skip semgrep audit
+plone-codemod /path/to/your/src/ --skip-python     # ZCML + XML + PT only
+plone-codemod /path/to/your/src/ --skip-zcml        # Python + XML + PT only
+plone-codemod /path/to/your/src/ --skip-pt          # Skip page templates
+plone-codemod /path/to/your/src/ --skip-audit       # Skip semgrep audit
 
 # Use a custom config
-python runner.py /path/to/your/src/ --config my_config.yaml
+plone-codemod /path/to/your/src/ --config my_config.yaml
 ```
 
 After running, review changes with `git diff` and commit.
@@ -207,28 +208,34 @@ The tool splits on the last `.` to determine module vs name.
 - **Glyphicons** → Bootstrap Icons / SVG (flagged by semgrep)
 - **Dynamic imports** (`importlib.import_module("Products.CMFPlone.utils")`)
 
-## Running tests
+## Development
 
 ```bash
-pip install pytest
+# Clone and install in dev mode
+git clone https://github.com/bluedynamics/plone-codemod.git
 cd plone-codemod
-pytest tests/ -v
+uv venv && uv pip install -e ".[dev]"
+
+# Run tests
+uv run pytest tests/ -v
+
+# Lint
+uvx ruff check .
+uvx ruff format --check .
 ```
 
 ## Architecture
 
 ```
 plone-codemod/
-  migration_config.yaml         # Declarative old→new mapping (YAML)
-  codemods/
+  src/plone_codemod/
+    cli.py                       # Orchestrator with --dry-run, --bootstrap
     import_migrator.py           # libcst codemod: Python imports + usage sites
-  zcml/
     zcml_migrator.py             # ZCML + GenericSetup XML transformer
-  templates/
     pt_migrator.py               # Page template + Bootstrap migrator
-  semgrep_rules/
-    plone6_deprecated.yaml       # 35+ audit/detection rules
-  runner.py                      # Orchestrator with --dry-run, --bootstrap
+    migration_config.yaml        # Declarative old→new mapping (YAML)
+    semgrep_rules/
+      plone6_deprecated.yaml     # 35+ audit/detection rules
   tests/
     test_import_migrator.py      # 32 tests for Python migration
     test_zcml_migrator.py        # 17 tests for ZCML/XML migration

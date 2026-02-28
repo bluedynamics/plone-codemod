@@ -7,3 +7,7 @@ dist/
 build/
 .libcst.codemod.yaml
 .eggs/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
