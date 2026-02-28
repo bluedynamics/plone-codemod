@@ -6,6 +6,10 @@
   PEP 639 license expression is present. setuptools >= 78 rejects having both.
   [jensens]
 
+- Remove `check-manifest` hook from `.pre-commit-config.yaml` when
+  `MANIFEST.in` is deleted during packaging migration.
+  [jensens]
+
 ## 1.0.0a2 (2026-02-28)
 
 - Add Phase 7: Namespace package migration (PEP 420, `--namespaces`).

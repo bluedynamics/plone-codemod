@@ -19,6 +19,7 @@ from pathlib import Path
 
 import ast
 import configparser
+import re
 import tomlkit
 import tomlkit.items
 
@@ -998,6 +999,43 @@ def cleanup_old_files(project_dir: Path, dry_run: bool = False) -> list[Path]:
     return deleted
 
 
+def cleanup_pre_commit_check_manifest(
+    project_dir: Path, dry_run: bool = False
+) -> list[Path]:
+    """Remove the check-manifest hook from .pre-commit-config.yaml.
+
+    After MANIFEST.in is deleted, a check-manifest pre-commit hook will
+    fail because there is nothing left to check.  Rather than leaving a
+    broken hook, we remove the entire repo entry for check-manifest.
+
+    Uses regex on the raw text to avoid rewriting the YAML (which would
+    lose comments and formatting).
+    """
+    pre_commit = project_dir / ".pre-commit-config.yaml"
+    if not pre_commit.exists():
+        return []
+
+    content = pre_commit.read_text(encoding="utf-8")
+    if "check-manifest" not in content:
+        return []
+
+    # Match a full repo block for check-manifest.
+    # Pattern: "-  repo: <url>" (with optional spaces) through to the next
+    # "- repo:" or end of the "repos:" list.
+    cleaned = re.sub(
+        r"(?m)^[ \t]*-\s*repo:\s*\S*check-manifest\S*\n(?:(?![ \t]*-\s*repo:).*\n)*",
+        "",
+        content,
+    )
+
+    if cleaned == content:
+        return []
+
+    if not dry_run:
+        pre_commit.write_text(cleaned, encoding="utf-8")
+    return [pre_commit]
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -1081,8 +1119,12 @@ def migrate_packaging(
     # 7. Clean up old files
     deleted = cleanup_old_files(project_dir, dry_run)
 
+    # 8. Remove check-manifest pre-commit hook (MANIFEST.in is gone)
+    modified = cleanup_pre_commit_check_manifest(project_dir, dry_run)
+
     return {
         "created_files": created,
         "deleted_files": deleted,
+        "modified_files": modified,
         "warnings": result_warnings,
     }

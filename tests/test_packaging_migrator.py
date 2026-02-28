@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from plone_codemod.packaging_migrator import cleanup_old_files
+from plone_codemod.packaging_migrator import cleanup_pre_commit_check_manifest
 from plone_codemod.packaging_migrator import convert_tool_configs
 from plone_codemod.packaging_migrator import generate_pyproject_toml
 from plone_codemod.packaging_migrator import merge_metadata
@@ -889,3 +890,83 @@ setup(name='my-pkg', version='1.0')
             # Both old and new content present
             assert parsed["tool"]["ruff"]["target-version"] == "py312"
             assert parsed["project"]["name"] == "my-pkg"
+
+    def test_cleanup_pre_commit_check_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".pre-commit-config.yaml").write_text("""\
+repos:
+-   repo: https://github.com/mgedmin/check-manifest
+    rev: "0.49"
+    hooks:
+    -   id: check-manifest
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+""")
+            modified = cleanup_pre_commit_check_manifest(root)
+            assert len(modified) == 1
+            content = (root / ".pre-commit-config.yaml").read_text()
+            assert "check-manifest" not in content
+            assert "trailing-whitespace" in content
+            assert "pre-commit-hooks" in content
+
+    def test_cleanup_pre_commit_check_manifest_dry_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            original = """\
+repos:
+-   repo: https://github.com/mgedmin/check-manifest
+    rev: "0.49"
+    hooks:
+    -   id: check-manifest
+"""
+            (root / ".pre-commit-config.yaml").write_text(original)
+            modified = cleanup_pre_commit_check_manifest(root, dry_run=True)
+            assert len(modified) == 1
+            assert (root / ".pre-commit-config.yaml").read_text() == original
+
+    def test_cleanup_pre_commit_no_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            modified = cleanup_pre_commit_check_manifest(Path(tmpdir))
+            assert modified == []
+
+    def test_cleanup_pre_commit_no_check_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".pre-commit-config.yaml").write_text("""\
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+""")
+            modified = cleanup_pre_commit_check_manifest(root)
+            assert modified == []
+
+    def test_full_migration_removes_check_manifest_hook(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "setup.py").write_text("""\
+from setuptools import setup
+setup(name='my-pkg', version='1.0')
+""")
+            (root / ".pre-commit-config.yaml").write_text("""\
+repos:
+-   repo: https://github.com/mgedmin/check-manifest
+    rev: "0.49"
+    hooks:
+    -   id: check-manifest
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+""")
+            result = migrate_packaging(root)
+            assert any(
+                "pre-commit" in str(f) for f in result["modified_files"]
+            )
+            content = (root / ".pre-commit-config.yaml").read_text()
+            assert "check-manifest" not in content
+            assert "trailing-whitespace" in content
