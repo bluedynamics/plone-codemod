@@ -205,6 +205,61 @@ setup(
         result = parse_setup_py(setup_py)
         assert result["long_description"] == "__file__:README.rst"
 
+    def test_long_description_join_pattern(self, tmp_path):
+        r"""Test '\n\n'.join([open('README').read(), ...]) pattern."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+from setuptools import setup
+setup(
+    name='my-package',
+    long_description="\\n\\n".join([
+        open("README.rst").read(),
+        open("CONTRIBUTORS.rst").read(),
+        open("CHANGES.rst").read(),
+    ]),
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
+    def test_long_description_fstring_pattern(self, tmp_path):
+        """Test f-string with Path().read_text() pattern."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+from pathlib import Path
+from setuptools import setup
+long_description = f"{Path('README.rst').read_text()}\\n{Path('CHANGES.rst').read_text()}"
+setup(
+    name='my-package',
+    long_description=long_description,
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
+    def test_long_description_join_with_read_helper(self, tmp_path):
+        r"""Test '\n\n'.join([read('README'), read('CONTRIBUTORS'), ...])."""
+        setup_py = tmp_path / "setup.py"
+        setup_py.write_text("""\
+import os
+
+def read(*rnames):
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
+
+from setuptools import setup
+setup(
+    name='my-package',
+    long_description="\\n\\n".join([
+        read("README.rst"),
+        read("CONTRIBUTORS.rst"),
+        read("CHANGES.rst"),
+    ]),
+)
+""")
+        result = parse_setup_py(setup_py)
+        assert result["long_description"] == "__file__:README.rst"
+
     def test_classifiers(self, tmp_path):
         setup_py = tmp_path / "setup.py"
         setup_py.write_text("""\

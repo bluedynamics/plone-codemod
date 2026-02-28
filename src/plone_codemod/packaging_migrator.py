@@ -91,7 +91,9 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
     Covers the patterns actually seen in Plone setup.py files:
     constants, variables, lists, dicts, ``dict()``, ``find_packages()``,
     string concatenation, ``open(...).read()`` file references,
-    ``"...".format(read("README.rst"), ...)`` format calls, and
+    ``"...".format(read("README.rst"), ...)`` format calls,
+    ``"\n".join([open("README.rst").read(), ...])`` join calls,
+    f-strings with file reads, and
     helper functions like ``read("README.rst")`` with doc-filename args.
     """
     if isinstance(node, ast.Constant):
@@ -178,6 +180,29 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
         if isinstance(first, str) and first.startswith("__file__:"):
             return first
 
+    # "\n".join([open("README.rst").read(), ...]) → extract file ref from list
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "join"
+        and isinstance(node.func.value, ast.Constant)
+        and isinstance(node.func.value.value, str)
+        and node.args
+    ):
+        arg = node.args[0]
+        if isinstance(arg, ast.List) and arg.elts:
+            first = _eval_node(arg.elts[0], module_vars)
+            if isinstance(first, str) and first.startswith("__file__:"):
+                return first
+
+    # f"...{open('README.rst').read()}..." → extract file ref from f-string
+    if isinstance(node, ast.JoinedStr):
+        for value in node.values:
+            if isinstance(value, ast.FormattedValue):
+                inner = _eval_node(value.value, module_vars)
+                if isinstance(inner, str) and inner.startswith("__file__:"):
+                    return inner
+
     # Calls with doc-filename args: read("README.rst"), read("CHANGES.rst")
     # Common pattern in Plone setup.py files using helper functions.
     if isinstance(node, ast.Call) and node.args:
@@ -245,7 +270,7 @@ def _is_doc_filename(filename: str) -> bool:
     false positives on unrelated function calls.
     """
     base = filename.split(".")[0].upper() if "." in filename else filename.upper()
-    return base in ("README", "CHANGES", "CHANGELOG", "HISTORY", "NEWS")
+    return base in ("README", "CHANGES", "CHANGELOG", "HISTORY", "NEWS", "CONTRIBUTORS")
 
 
 def _is_setup_call(node: ast.Call) -> bool:
