@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "plone-codemod"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Automated code migration tool for Plone 5.2 → 6.x upgrades"
 readme = "README.md"
 license = "GPL-2.0-only"
@@ -40,6 +40,10 @@ dev = [
 
 [project.scripts]
 plone-codemod = "plone_codemod.cli:main"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/plone_codemod"]
