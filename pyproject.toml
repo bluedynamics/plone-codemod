@@ -105,7 +105,10 @@ extra-paths = ["src"]
 include = ["src/plone_codemod/packaging_migrator.py", "tests/test_packaging_migrator.py"]
 
 [tool.ty.overrides.rules]
+# Rule names vary across ty versions — include both old and new variants.
 non-subscriptable = "ignore"
+not-subscriptable = "ignore"
 unsupported-operator = "ignore"
 invalid-argument-type = "ignore"
 possibly-missing-attribute = "ignore"
+unresolved-attribute = "ignore"
