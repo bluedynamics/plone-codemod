@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0a3 (unreleased)
+## 1.0.0a3 (2026-02-28)
 
 - Strip `License ::` classifiers from generated `pyproject.toml` when a
   PEP 639 license expression is present. setuptools >= 78 rejects having both.
