@@ -175,7 +175,7 @@ class PloneImportMigrator(VisitorBasedCodemodCommand):
             migrated[mp.new_module].append(new_alias)
 
         # Build result statements
-        result_stmts: list[cst.BaseStatement] = []
+        result_stmts: list[cst.SimpleStatementLine] = []
 
         # Keep remaining names in the original import
         if kept:
