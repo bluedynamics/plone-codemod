@@ -19,8 +19,8 @@ from pathlib import Path
 
 import ast
 import configparser
-
 import tomlkit
+import tomlkit.items
 
 
 # ---------------------------------------------------------------------------
@@ -113,17 +113,21 @@ def _eval_node(node: ast.expr, module_vars: dict) -> object:
     if isinstance(node, ast.Dict):
         keys = []
         vals = []
-        for k, v in zip(node.keys, node.values):
+        for k, v in zip(node.keys, node.values, strict=True):
             ek = _eval_node(k, module_vars) if k else _UNRESOLVED
             ev = _eval_node(v, module_vars)
             if ek is _UNRESOLVED or ev is _UNRESOLVED:
                 return _UNRESOLVED
             keys.append(ek)
             vals.append(ev)
-        return dict(zip(keys, vals))
+        return dict(zip(keys, vals, strict=True))
 
     # dict() call: e.g. dict(test=[...], docs=[...])
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "dict":
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "dict"
+    ):
         result = {}
         for kw in node.keywords:
             if kw.arg is None:
@@ -171,9 +175,7 @@ def _is_find_packages(node: ast.Call) -> bool:
         return True
     if isinstance(func, ast.Attribute) and func.attr == "find_packages":
         return True
-    if isinstance(func, ast.Name) and func.id == "find_namespace_packages":
-        return True
-    return False
+    return isinstance(func, ast.Name) and func.id == "find_namespace_packages"
 
 
 def _detect_file_read_chain(node: ast.Call) -> str | None:
@@ -186,11 +188,19 @@ def _detect_file_read_chain(node: ast.Call) -> str | None:
     if isinstance(node.func, ast.Attribute) and node.func.attr in ("read", "read_text"):
         inner = node.func.value
         if isinstance(inner, ast.Call):
-            if isinstance(inner.func, ast.Name) and inner.func.id == "open" and inner.args:
+            if (
+                isinstance(inner.func, ast.Name)
+                and inner.func.id == "open"
+                and inner.args
+            ):
                 arg = inner.args[0]
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     return arg.value
-            if isinstance(inner.func, ast.Name) and inner.func.id == "Path" and inner.args:
+            if (
+                isinstance(inner.func, ast.Name)
+                and inner.func.id == "Path"
+                and inner.args
+            ):
                 arg = inner.args[0]
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     return arg.value
@@ -202,9 +212,7 @@ def _is_setup_call(node: ast.Call) -> bool:
     func = node.func
     if isinstance(func, ast.Name) and func.id == "setup":
         return True
-    if isinstance(func, ast.Attribute) and func.attr == "setup":
-        return True
-    return False
+    return isinstance(func, ast.Attribute) and func.attr == "setup"
 
 
 def _extract_setup_kwargs(node: ast.Call, module_vars: dict) -> dict:
@@ -261,16 +269,14 @@ def parse_setup_cfg(path: Path) -> dict:
                 result[key] = _parse_cfg_list(val)
             elif key == "python_requires":
                 result["python_requires"] = val
-            elif key == "zip_safe":
-                result[key] = val.lower() in ("true", "1", "yes")
-            elif key == "include_package_data":
+            elif key in ("zip_safe", "include_package_data"):
                 result[key] = val.lower() in ("true", "1", "yes")
             elif key == "package_dir":
                 result[key] = val
             elif key == "packages":
-                if val.strip().startswith("find:"):
-                    result["packages"] = "find_packages:."
-                elif val.strip().startswith("find_namespace:"):
+                if val.strip().startswith("find:") or val.strip().startswith(
+                    "find_namespace:"
+                ):
                     result["packages"] = "find_packages:."
                 else:
                     result[key] = _parse_cfg_list(val)
@@ -343,7 +349,9 @@ def convert_tool_configs(path: Path) -> dict:
     # isort → ruff.lint.isort
     if cfg.has_section("isort"):
         isort_cfg = _convert_isort(cfg)
-        tools.setdefault("ruff", {}).setdefault("lint", {}).setdefault("isort", {}).update(isort_cfg)
+        tools.setdefault("ruff", {}).setdefault("lint", {}).setdefault(
+            "isort", {}
+        ).update(isort_cfg)
 
     # pycodestyle / pep8 → ruff
     for section in ("pycodestyle", "pep8"):
@@ -355,7 +363,9 @@ def convert_tool_configs(path: Path) -> dict:
     # pydocstyle → ruff.lint.pydocstyle
     if cfg.has_section("pydocstyle"):
         pydoc_cfg = _convert_pydocstyle(cfg)
-        tools.setdefault("ruff", {}).setdefault("lint", {}).setdefault("pydocstyle", {}).update(pydoc_cfg)
+        tools.setdefault("ruff", {}).setdefault("lint", {}).setdefault(
+            "pydocstyle", {}
+        ).update(pydoc_cfg)
 
     # tool:pytest / pytest → pytest.ini_options
     for section in ("tool:pytest", "pytest"):
@@ -365,11 +375,15 @@ def convert_tool_configs(path: Path) -> dict:
 
     # coverage:run → coverage.run
     if cfg.has_section("coverage:run"):
-        tools.setdefault("coverage", {})["run"] = _convert_coverage_section(cfg, "coverage:run")
+        tools.setdefault("coverage", {})["run"] = _convert_coverage_section(
+            cfg, "coverage:run"
+        )
 
     # coverage:report → coverage.report
     if cfg.has_section("coverage:report"):
-        tools.setdefault("coverage", {})["report"] = _convert_coverage_section(cfg, "coverage:report")
+        tools.setdefault("coverage", {})["report"] = _convert_coverage_section(
+            cfg, "coverage:report"
+        )
 
     # check-manifest → check-manifest
     if cfg.has_section("check-manifest"):
@@ -395,7 +409,9 @@ def _convert_flake8(cfg: configparser.ConfigParser) -> tuple[dict, dict]:
         elif key == "select":
             ruff_lint["select"] = [s.strip() for s in val.split(",") if s.strip()]
         elif key == "extend-ignore" or key == "extend_ignore":
-            ruff_lint["extend-ignore"] = [s.strip() for s in val.split(",") if s.strip()]
+            ruff_lint["extend-ignore"] = [
+                s.strip() for s in val.split(",") if s.strip()
+            ]
         elif key == "exclude":
             ruff["exclude"] = _parse_cfg_list(val)
 
@@ -427,7 +443,12 @@ def _convert_isort(cfg: configparser.ConfigParser) -> dict:
             if key in ("known_first_party", "known_third_party"):
                 result[key_map[key]] = [s.strip() for s in val.split(",") if s.strip()]
             # Booleans
-            elif key in ("force_single_line", "from_first", "no_sections", "order_by_type"):
+            elif key in (
+                "force_single_line",
+                "from_first",
+                "no_sections",
+                "order_by_type",
+            ):
                 result[key_map[key]] = val.lower() in ("true", "1", "yes")
             # Integers
             elif key in ("lines_after_imports", "lines_between_types"):
@@ -441,7 +462,9 @@ def _convert_isort(cfg: configparser.ConfigParser) -> dict:
     return result
 
 
-def _convert_pycodestyle(cfg: configparser.ConfigParser, section: str) -> tuple[dict, dict]:
+def _convert_pycodestyle(
+    cfg: configparser.ConfigParser, section: str
+) -> tuple[dict, dict]:
     """Convert [pycodestyle] or [pep8] to ruff settings."""
     ruff: dict = {}
     ruff_lint: dict = {}
@@ -489,9 +512,7 @@ def _convert_coverage_section(cfg: configparser.ConfigParser, section: str) -> d
     for key, val in cfg.items(section):
         if key in ("source", "omit", "include"):
             result[key] = _parse_cfg_list(val)
-        elif key == "show_missing":
-            result[key] = val.lower() in ("true", "1", "yes")
-        elif key == "branch":
+        elif key in ("show_missing", "branch"):
             result[key] = val.lower() in ("true", "1", "yes")
         elif key == "fail_under":
             result[key] = float(val)
@@ -539,10 +560,9 @@ def generate_pyproject_toml(
 
     If existing_pyproject is given, merges into it preserving existing sections.
     """
-    if existing_pyproject:
-        doc = tomlkit.parse(existing_pyproject)
-    else:
-        doc = tomlkit.document()
+    doc = (
+        tomlkit.parse(existing_pyproject) if existing_pyproject else tomlkit.document()
+    )
 
     # Build system
     if "build-system" not in doc:
@@ -571,7 +591,6 @@ def generate_pyproject_toml(
                 arr.append(dep)
             opt_deps.add(group, arr)
         doc["project"].add("optional-dependencies", opt_deps)
-
     # [project.urls]
     url = metadata.get("url") or metadata.get("home_page")
     project_urls = metadata.get("project_urls")
@@ -584,7 +603,6 @@ def generate_pyproject_toml(
                 if k not in urls:
                     urls.add(k, v)
         doc["project"].add("urls", urls)
-
     # Entry points
     _add_entry_points(doc, metadata)
 
@@ -597,7 +615,9 @@ def generate_pyproject_toml(
 
     # [tool.hatch.version]
     if _is_dynamic_version(metadata):
-        hatch = doc.setdefault("tool", tomlkit.table()).setdefault("hatch", tomlkit.table())
+        hatch = doc.setdefault("tool", tomlkit.table()).setdefault(
+            "hatch", tomlkit.table()
+        )
         version_tbl = tomlkit.table()
         version_tbl.add("source", "vcs")
         hatch.add("version", version_tbl)
@@ -713,9 +733,7 @@ def _is_dynamic_version(metadata: dict) -> bool:
     version = metadata.get("version")
     if version is None:
         return True
-    if isinstance(version, str) and version.startswith("__file__:"):
-        return True
-    return False
+    return isinstance(version, str) and version.startswith("__file__:")
 
 
 def _detect_readme(metadata: dict) -> str | None:
@@ -880,9 +898,7 @@ def _dict_to_tomlkit(d: dict) -> tomlkit.items.Table:
             for item in val:
                 arr.append(item)
             table.add(key, arr)
-        elif isinstance(val, bool):
-            table.add(key, val)
-        elif isinstance(val, (int, float)):
+        elif isinstance(val, (bool, int, float)):
             table.add(key, val)
         else:
             table.add(key, str(val))
@@ -951,7 +967,11 @@ def migrate_packaging(
 
     if not setup_py_data and not setup_cfg_data:
         result_warnings.append("No setup.py or setup.cfg found to migrate")
-        return {"created_files": created, "deleted_files": deleted, "warnings": result_warnings}
+        return {
+            "created_files": created,
+            "deleted_files": deleted,
+            "warnings": result_warnings,
+        }
 
     # 3. Merge metadata
     metadata = merge_metadata(setup_py_data, setup_cfg_data)
@@ -973,7 +993,11 @@ def migrate_packaging(
                 result_warnings.append(
                     "pyproject.toml already has [project] section, skipping migration"
                 )
-                return {"created_files": created, "deleted_files": deleted, "warnings": result_warnings}
+                return {
+                    "created_files": created,
+                    "deleted_files": deleted,
+                    "warnings": result_warnings,
+                }
         except Exception:
             pass
 
@@ -987,4 +1011,8 @@ def migrate_packaging(
     # 7. Clean up old files
     deleted = cleanup_old_files(project_dir, dry_run)
 
-    return {"created_files": created, "deleted_files": deleted, "warnings": result_warnings}
+    return {
+        "created_files": created,
+        "deleted_files": deleted,
+        "warnings": result_warnings,
+    }

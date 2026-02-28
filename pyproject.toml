@@ -98,3 +98,14 @@ max-doc-length = 120
 [tool.ty.environment]
 python-version = "3.12"
 extra-paths = ["src"]
+
+# tomlkit uses a dynamic API — subscript/attribute operations on parsed
+# documents work at runtime but ty can't infer them statically.
+[[tool.ty.overrides]]
+include = ["src/plone_codemod/packaging_migrator.py", "tests/test_packaging_migrator.py"]
+
+[tool.ty.overrides.rules]
+non-subscriptable = "ignore"
+unsupported-operator = "ignore"
+invalid-argument-type = "ignore"
+possibly-missing-attribute = "ignore"

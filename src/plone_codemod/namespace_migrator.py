@@ -124,14 +124,14 @@ def remove_namespace_declaration(content: str) -> str:
         if stripped == "try:":
             # Look ahead for the pkg_resources pattern inside try block
             block = _collect_try_except_block(lines, i)
-            if block is not None:
-                # Check each line in the block for pkg_resources
-                if any(_RE_PKG_RESOURCES.match(ln) for ln in lines[i : i + block]):
-                    i += block
-                    # Skip trailing blank lines after the block
-                    while i < len(lines) and not lines[i].strip():
-                        i += 1
-                    continue
+            if block is not None and any(
+                _RE_PKG_RESOURCES.match(ln) for ln in lines[i : i + block]
+            ):
+                i += block
+                # Skip trailing blank lines after the block
+                while i < len(lines) and not lines[i].strip():
+                    i += 1
+                continue
 
         # Simple pkg_resources line
         if _RE_PKG_RESOURCES.match(line):
@@ -231,7 +231,10 @@ def find_namespace_init_files(
     for init_file in sorted(project_dir.rglob("__init__.py")):
         # Skip hidden dirs, build dirs, egg-info
         parts = init_file.relative_to(project_dir).parts
-        if any(p.startswith(".") or p in ("build", "dist") or p.endswith(".egg-info") for p in parts):
+        if any(
+            p.startswith(".") or p in ("build", "dist") or p.endswith(".egg-info")
+            for p in parts
+        ):
             continue
         try:
             content = init_file.read_text(encoding="utf-8")
@@ -326,9 +329,7 @@ def _is_setup_call(node: ast.Call) -> bool:
     func = node.func
     if isinstance(func, ast.Name) and func.id == "setup":
         return True
-    if isinstance(func, ast.Attribute) and func.attr == "setup":
-        return True
-    return False
+    return isinstance(func, ast.Attribute) and func.attr == "setup"
 
 
 def _remove_setup_kwarg(content: str, kwarg_name: str) -> str:

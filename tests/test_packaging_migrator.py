@@ -10,7 +10,6 @@ from plone_codemod.packaging_migrator import parse_setup_cfg
 from plone_codemod.packaging_migrator import parse_setup_py
 
 import tempfile
-
 import tomlkit
 
 
@@ -130,7 +129,9 @@ setup(
 )
 """)
         result = parse_setup_py(setup_py)
-        assert result["entry_points"] == {"console_scripts": ["my-cmd = my_package.cli:main"]}
+        assert result["entry_points"] == {
+            "console_scripts": ["my-cmd = my_package.cli:main"]
+        }
 
     def test_long_description_from_file(self, tmp_path):
         setup_py = tmp_path / "setup.py"
@@ -176,7 +177,11 @@ setup(
 )
 """)
         result = parse_setup_py(setup_py)
-        assert result["install_requires"] == ["setuptools", "plone.api>=2.0", "zope.interface"]
+        assert result["install_requires"] == [
+            "setuptools",
+            "plone.api>=2.0",
+            "zope.interface",
+        ]
 
     def test_plone_typical_pattern(self, tmp_path):
         setup_py = tmp_path / "setup.py"
@@ -317,7 +322,9 @@ z3c.autoinclude.plugin =
 """)
         result = parse_setup_cfg(setup_cfg)
         assert "console_scripts" in result["entry_points"]
-        assert result["entry_points"]["console_scripts"] == ["my-cmd = my_package.cli:main"]
+        assert result["entry_points"]["console_scripts"] == [
+            "my-cmd = my_package.cli:main"
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -370,7 +377,10 @@ class TestGeneratePyprojectToml:
             "url": "https://github.com/plone/plone.app.something",
             "license": "GPL",
             "python_requires": ">=3.8",
-            "classifiers": ["Framework :: Plone", "Programming Language :: Python :: 3"],
+            "classifiers": [
+                "Framework :: Plone",
+                "Programming Language :: Python :: 3",
+            ],
             "install_requires": ["plone.api>=2.0", "zope.interface"],
             "packages": "find_packages:src",
         }
@@ -435,7 +445,10 @@ class TestGeneratePyprojectToml:
         }
         content = generate_pyproject_toml(metadata)
         parsed = tomlkit.parse(content)
-        assert parsed["project"]["entry-points"]["z3c.autoinclude.plugin"]["target"] == "plone"
+        assert (
+            parsed["project"]["entry-points"]["z3c.autoinclude.plugin"]["target"]
+            == "plone"
+        )
 
     def test_entry_points_string_format(self):
         metadata = {
@@ -448,7 +461,10 @@ class TestGeneratePyprojectToml:
         }
         content = generate_pyproject_toml(metadata)
         parsed = tomlkit.parse(content)
-        assert parsed["project"]["entry-points"]["z3c.autoinclude.plugin"]["target"] == "plone"
+        assert (
+            parsed["project"]["entry-points"]["z3c.autoinclude.plugin"]["target"]
+            == "plone"
+        )
 
     def test_readme_detection(self):
         metadata = {
@@ -488,7 +504,9 @@ name = "existing-package"
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             (root / "pyproject.toml").write_text(existing)
-            (root / "setup.py").write_text("from setuptools import setup\nsetup(name='pkg')\n")
+            (root / "setup.py").write_text(
+                "from setuptools import setup\nsetup(name='pkg')\n"
+            )
             result = migrate_packaging(root)
             assert any("already has [project]" in w for w in result["warnings"])
 
@@ -509,7 +527,9 @@ name = "existing-package"
         }
         content = generate_pyproject_toml(metadata)
         parsed = tomlkit.parse(content)
-        packages = list(parsed["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"])
+        packages = list(
+            parsed["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
+        )
         assert "src/plone" in packages
 
     def test_license_normalization(self):
@@ -675,7 +695,7 @@ setup(
     install_requires=['plone.api'],
 )
 """)
-            result = migrate_packaging(root)
+            migrate_packaging(root)
             assert (root / "pyproject.toml").exists()
             assert not (root / "setup.py").exists()
 
@@ -713,7 +733,7 @@ target-version = "py312"
 from setuptools import setup
 setup(name='my-pkg', version='1.0')
 """)
-            result = migrate_packaging(root)
+            migrate_packaging(root)
             content = (root / "pyproject.toml").read_text()
             parsed = tomlkit.parse(content)
             # Both old and new content present

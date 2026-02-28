@@ -35,9 +35,7 @@ class TestIsNamespaceDeclaration:
         assert is_namespace_declaration("from pkgutil import extend_path")
 
     def test_pkgutil_path_assignment(self):
-        assert is_namespace_declaration(
-            "__path__ = extend_path(__path__, __name__)"
-        )
+        assert is_namespace_declaration("__path__ = extend_path(__path__, __name__)")
 
     def test_not_a_comment(self):
         assert not is_namespace_declaration(
@@ -60,7 +58,9 @@ class TestHasNamespaceDeclaration:
     """Test content-level namespace detection."""
 
     def test_detects_pkg_resources_in_content(self):
-        content = "# namespace\n__import__('pkg_resources').declare_namespace(__name__)\n"
+        content = (
+            "# namespace\n__import__('pkg_resources').declare_namespace(__name__)\n"
+        )
         assert has_namespace_declaration(content)
 
     def test_detects_pkgutil_in_content(self):
@@ -68,7 +68,9 @@ class TestHasNamespaceDeclaration:
         assert has_namespace_declaration(content)
 
     def test_no_match_in_regular_code(self):
-        content = "from importlib.metadata import version\n__version__ = version('my-pkg')\n"
+        content = (
+            "from importlib.metadata import version\n__version__ = version('my-pkg')\n"
+        )
         assert not has_namespace_declaration(content)
 
     def test_empty_content(self):
@@ -223,9 +225,13 @@ class TestFindNamespaceInitFiles:
             app_dir.mkdir()
 
             plone_init = plone_dir / "__init__.py"
-            plone_init.write_text("__import__('pkg_resources').declare_namespace(__name__)\n")
+            plone_init.write_text(
+                "__import__('pkg_resources').declare_namespace(__name__)\n"
+            )
             app_init = app_dir / "__init__.py"
-            app_init.write_text("__import__('pkg_resources').declare_namespace(__name__)\n")
+            app_init.write_text(
+                "__import__('pkg_resources').declare_namespace(__name__)\n"
+            )
 
             # Actual package init with real code
             mypkg = app_dir / "mypkg"
@@ -401,12 +407,16 @@ class TestMigrateNamespaces:
             plone_dir = src / "plone"
             plone_dir.mkdir(parents=True)
             plone_init = plone_dir / "__init__.py"
-            plone_init.write_text("__import__('pkg_resources').declare_namespace(__name__)\n")
+            plone_init.write_text(
+                "__import__('pkg_resources').declare_namespace(__name__)\n"
+            )
 
             app_dir = plone_dir / "app"
             app_dir.mkdir()
             app_init = app_dir / "__init__.py"
-            app_init.write_text("__import__('pkg_resources').declare_namespace(__name__)\n")
+            app_init.write_text(
+                "__import__('pkg_resources').declare_namespace(__name__)\n"
+            )
 
             pkg_dir = app_dir / "mypkg"
             pkg_dir.mkdir()
@@ -439,7 +449,9 @@ setup(
             plone_dir = src / "plone"
             plone_dir.mkdir(parents=True)
             plone_init = plone_dir / "__init__.py"
-            plone_init.write_text("__import__('pkg_resources').declare_namespace(__name__)\n")
+            plone_init.write_text(
+                "__import__('pkg_resources').declare_namespace(__name__)\n"
+            )
 
             result = migrate_namespaces(root, src, dry_run=True)
 
