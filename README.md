@@ -33,6 +33,20 @@ Unlike simple `sed`/`find` scripts, plone-codemod uses [libcst](https://github.c
 - 35+ rules to detect deprecated imports, removed skin scripts, portal_properties usage, Bootstrap 3 patterns, and more
 - Use in CI to prevent regressions
 
+**Namespace packages → PEP 420** (opt-in via `--namespaces`):
+- Removes `__import__('pkg_resources').declare_namespace(__name__)` declarations
+- Removes `pkgutil.extend_path` declarations
+- Deletes namespace-only `__init__.py` files (or edits them if they contain other code)
+- Cleans `namespace_packages` from `setup.py` and `setup.cfg`
+
+**setup.py → pyproject.toml** (opt-in via `--packaging`):
+- Parses `setup.py` (AST-based) and `setup.cfg` (configparser-based)
+- Generates PEP 621 compliant `pyproject.toml` with hatchling build backend
+- Converts tool configs: `[flake8]`/`[isort]`/`[pycodestyle]` → `[tool.ruff.*]`, `[tool:pytest]` → `[tool.pytest.ini_options]`, coverage sections, etc.
+- Strips `setuptools` from runtime dependencies, normalizes license strings to SPDX
+- Merges into existing `pyproject.toml` if present (preserves `[tool.ruff]` etc.)
+- Deletes `setup.py`, `setup.cfg`, `MANIFEST.in` after migration
+
 ## Installation
 
 ```bash
@@ -68,6 +82,12 @@ plone-codemod /path/to/your/src/ --skip-audit       # Skip semgrep audit
 
 # Use a custom config
 plone-codemod /path/to/your/src/ --config my_config.yaml
+
+# Packaging modernization (opt-in)
+plone-codemod /path/to/your/src/ --namespaces                 # PEP 420 namespace migration
+plone-codemod /path/to/your/src/ --packaging                  # setup.py → pyproject.toml
+plone-codemod /path/to/your/src/ --namespaces --packaging     # Both (recommended)
+plone-codemod /path/to/your/src/ --packaging --project-dir .  # Explicit project root
 ```
 
 After running, review changes with `git diff` and commit.
@@ -154,6 +174,64 @@ Only runs when `--bootstrap` is passed. Handles data attributes and CSS classes:
 
 Bootstrap migration is opt-in because some projects intentionally keep Bootstrap 3 for parts of their UI.
 
+### Phase 7: Namespace packages → PEP 420 (opt-in)
+
+Only runs when `--namespaces` is passed. Converts old-style namespace packages to PEP 420 implicit namespace packages:
+
+```
+# Before: src/plone/__init__.py
+__import__('pkg_resources').declare_namespace(__name__)
+
+# After: src/plone/__init__.py is DELETED (PEP 420 — no __init__.py needed)
+```
+
+Handles:
+- `__import__('pkg_resources').declare_namespace(__name__)` (pkg_resources style)
+- `try/except ImportError` wrappers around the above
+- `from pkgutil import extend_path` + `__path__ = extend_path(...)` (pkgutil style)
+- Nested namespaces (e.g., both `plone/` and `plone/app/`)
+- Mixed files (namespace declaration removed, other code preserved)
+- Cleans `namespace_packages` from `setup.py` and `setup.cfg`
+
+### Phase 8: setup.py → pyproject.toml (opt-in)
+
+Only runs when `--packaging` is passed. Converts `setup.py`/`setup.cfg` to a PEP 621 compliant `pyproject.toml` with hatchling build backend:
+
+```toml
+# Generated pyproject.toml
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plone.app.something"
+dynamic = ["version"]
+description = "A Plone addon"
+readme = "README.rst"
+license = "GPL-2.0-only"
+requires-python = ">=3.8"
+dependencies = ["plone.api>=2.0", "zope.interface"]
+
+[project.entry-points."z3c.autoinclude.plugin"]
+target = "plone"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plone"]
+
+[tool.hatch.version]
+source = "vcs"
+```
+
+Tool config conversion (from `setup.cfg`):
+- `[flake8]` → `[tool.ruff.lint]`
+- `[isort]` → `[tool.ruff.lint.isort]`
+- `[pycodestyle]`/`[pep8]` → `[tool.ruff.lint]`
+- `[tool:pytest]` → `[tool.pytest.ini_options]`
+- `[coverage:run]`/`[coverage:report]` → `[tool.coverage.*]`
+- `[bdist_wheel]` — dropped (PEP 517 handles this)
+
+Use `--project-dir` to specify the project root if it's not the parent of `source_dir`.
+
 ### Phase 6: Audit (optional)
 
 Runs semgrep rules to detect issues that need manual attention:
@@ -202,7 +280,7 @@ The tool splits on the last `.` to determine module vs name.
 - **`portal_properties`** removal (flagged by semgrep — needs registry migration)
 - **Removed skin scripts** in TAL expressions (flagged by semgrep)
 - **`getViewTemplateId`** deprecation (flagged by semgrep)
-- **Buildout → pip/mxdev** migration (different config format)
+- **Buildout → pip/mxdev** migration (different config format, use [mxdev](https://github.com/mxstack/mxdev))
 - **Python 2 cleanup** (`six`, `__future__`, `u""` strings) — use [pyupgrade](https://github.com/asottile/pyupgrade) for this
 - **Resource registry / LESS** changes (complete rewrite needed)
 - **Glyphicons** → Bootstrap Icons / SVG (flagged by semgrep)
@@ -229,10 +307,12 @@ uvx ruff format --check .
 ```
 plone-codemod/
   src/plone_codemod/
-    cli.py                       # Orchestrator with --dry-run, --bootstrap
+    cli.py                       # Orchestrator with all phases and CLI flags
     import_migrator.py           # libcst codemod: Python imports + usage sites
     zcml_migrator.py             # ZCML + GenericSetup XML transformer
     pt_migrator.py               # Page template + Bootstrap migrator
+    namespace_migrator.py        # PEP 420 namespace package migration
+    packaging_migrator.py        # setup.py → pyproject.toml migration
     migration_config.yaml        # Declarative old→new mapping (YAML)
     semgrep_rules/
       plone6_deprecated.yaml     # 35+ audit/detection rules
@@ -240,6 +320,8 @@ plone-codemod/
     test_import_migrator.py      # 32 tests for Python migration
     test_zcml_migrator.py        # 17 tests for ZCML/XML migration
     test_pt_migrator.py          # 24 tests for PT + Bootstrap migration
+    test_namespace_migrator.py   # 47 tests for namespace migration
+    test_packaging_migrator.py   # 48 tests for packaging migration
 ```
 
 ## License

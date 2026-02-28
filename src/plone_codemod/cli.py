@@ -8,11 +8,14 @@ Orchestrates all migration phases:
 4. Page templates (.pt)
 5. Bootstrap 3→5 (opt-in via --bootstrap)
 6. Audit (semgrep, optional)
+7. Namespace packages → PEP 420 (opt-in via --namespaces)
+8. setup.py → pyproject.toml (opt-in via --packaging)
 
 Usage:
     plone-codemod ./src/
     plone-codemod ./src/ --dry-run
     plone-codemod ./src/ --bootstrap
+    plone-codemod ./src/ --namespaces --packaging
     plone-codemod ./src/ --config custom_config.yaml
     plone-codemod ./src/ --skip-python --skip-audit
 """
@@ -172,6 +175,49 @@ def run_audit(source_dir: Path) -> None:
                 print(f"  {line}")
 
 
+def run_namespace_migration(
+    project_dir: Path,
+    dry_run: bool = False,
+) -> None:
+    """Phase 7: Migrate to PEP 420 implicit namespace packages."""
+    print("\n=== Phase 7: Namespace package migration (PEP 420) ===")
+    from plone_codemod.namespace_migrator import migrate_namespaces
+
+    result = migrate_namespaces(project_dir, dry_run=dry_run)
+    prefix = "[DRY RUN] Would delete" if dry_run else "Deleted"
+    for f in result["deleted_files"]:
+        print(f"  {prefix}: {f}")
+    prefix = "[DRY RUN] Would modify" if dry_run else "Modified"
+    for f in result["modified_files"]:
+        print(f"  {prefix}: {f}")
+    total = len(result["deleted_files"]) + len(result["modified_files"])
+    if not total:
+        print("  No namespace package declarations found.")
+    else:
+        print(f"  Processed {total} file(s).")
+
+
+def run_packaging_migration(
+    project_dir: Path,
+    dry_run: bool = False,
+) -> None:
+    """Phase 8: Migrate setup.py → pyproject.toml."""
+    print("\n=== Phase 8: setup.py → pyproject.toml migration ===")
+    from plone_codemod.packaging_migrator import migrate_packaging
+
+    result = migrate_packaging(project_dir, dry_run=dry_run)
+    prefix = "[DRY RUN] Would create" if dry_run else "Created"
+    for f in result["created_files"]:
+        print(f"  {prefix}: {f}")
+    prefix = "[DRY RUN] Would delete" if dry_run else "Deleted"
+    for f in result["deleted_files"]:
+        print(f"  {prefix}: {f}")
+    for w in result["warnings"]:
+        print(f"  WARNING: {w}")
+    if not result["created_files"] and not result["deleted_files"]:
+        print("  No packaging changes needed.")
+
+
 def _report(modified: list[Path], label: str, dry_run: bool) -> None:
     prefix = "[DRY RUN] Would modify" if dry_run else "Modified"
     for f in modified:
@@ -188,13 +234,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    plone-codemod ./src/                         # Full migration (no BS)
-    plone-codemod ./src/ --dry-run               # Preview changes
-    plone-codemod ./src/ --bootstrap             # Include Bootstrap 3→5
-    plone-codemod ./src/ --bootstrap --dry-run   # Preview with Bootstrap
-    plone-codemod ./src/ --skip-python           # Only ZCML + XML + PT
-    plone-codemod ./src/ --skip-audit            # Skip semgrep audit
-    plone-codemod ./src/ --config my_config.yaml # Custom config
+    plone-codemod ./src/                                 # Full migration (no BS)
+    plone-codemod ./src/ --dry-run                       # Preview changes
+    plone-codemod ./src/ --bootstrap                     # Include Bootstrap 3→5
+    plone-codemod ./src/ --bootstrap --dry-run           # Preview with Bootstrap
+    plone-codemod ./src/ --skip-python                   # Only ZCML + XML + PT
+    plone-codemod ./src/ --skip-audit                    # Skip semgrep audit
+    plone-codemod ./src/ --config my_config.yaml         # Custom config
+    plone-codemod ./src/ --namespaces                    # Remove namespace pkg declarations
+    plone-codemod ./src/ --packaging                     # Convert setup.py → pyproject.toml
+    plone-codemod ./src/ --namespaces --packaging        # Both (recommended order)
+    plone-codemod ./src/ --packaging --project-dir /path # Explicit project root
         """,
     )
     parser.add_argument(
@@ -231,6 +281,23 @@ Examples:
     parser.add_argument(
         "--skip-audit", action="store_true", help="Skip semgrep audit phase"
     )
+    parser.add_argument(
+        "--project-dir",
+        type=Path,
+        default=None,
+        help="Project root directory (where setup.py/pyproject.toml live). "
+        "Defaults to parent of source_dir.",
+    )
+    parser.add_argument(
+        "--namespaces",
+        action="store_true",
+        help="Enable PEP 420 namespace package migration (opt-in)",
+    )
+    parser.add_argument(
+        "--packaging",
+        action="store_true",
+        help="Enable setup.py → pyproject.toml migration (opt-in)",
+    )
 
     args = parser.parse_args()
 
@@ -244,6 +311,12 @@ Examples:
         print("Mode: DRY RUN (no files will be modified)")
     if args.bootstrap:
         print("Bootstrap: ENABLED (BS3 → BS5 migration)")
+
+    project_dir = args.project_dir or args.source_dir.resolve().parent
+    if args.namespaces:
+        print(f"Namespaces: ENABLED (PEP 420 migration, project: {project_dir})")
+    if args.packaging:
+        print(f"Packaging: ENABLED (setup.py → pyproject.toml, project: {project_dir})")
 
     if not args.skip_python:
         run_python_migration(args.source_dir, args.config, args.dry_run)
@@ -262,6 +335,15 @@ Examples:
 
     if not args.skip_audit:
         run_audit(args.source_dir)
+
+    # Phase 7: Namespace migration (runs before packaging so namespace_packages
+    # is cleaned from setup.py before pyproject.toml generation)
+    if args.namespaces:
+        run_namespace_migration(project_dir, args.dry_run)
+
+    # Phase 8: Packaging migration
+    if args.packaging:
+        run_packaging_migration(project_dir, args.dry_run)
 
     print("\n=== Done ===")
     print("Review changes with: git diff")

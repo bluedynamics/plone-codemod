@@ -24,6 +24,7 @@ dependencies = [
     "libcst>=1.0",
     "pyyaml>=6.0",
     "semgrep",
+    "tomlkit>=0.12",
 ]
 
 [project.urls]
