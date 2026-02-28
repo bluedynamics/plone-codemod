@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "libcst>=1.0",
     "pyyaml>=6.0",
+    "semgrep",
 ]
 
 [project.urls]
@@ -31,12 +32,10 @@ Repository = "https://github.com/bluedynamics/plone-codemod"
 Issues = "https://github.com/bluedynamics/plone-codemod/issues"
 
 [project.optional-dependencies]
-audit = ["semgrep"]
 dev = [
     "pytest",
     "pytest-cov",
     "coverage[toml]>=7.0",
-    "semgrep",
 ]
 
 [project.scripts]
