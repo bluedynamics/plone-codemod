@@ -97,7 +97,7 @@ def migrate_zcml_files(
 ) -> list[Path]:
     """Walk directory and migrate all .zcml files."""
     config = load_config(config_path)
-    replacements = _build_replacements(config.get("zcml", []))
+    replacements = _build_replacements(config.get("imports", []))
 
     modified = []
     for zcml_file in sorted(root.rglob("*.zcml")):
@@ -120,14 +120,12 @@ def migrate_genericsetup_files(
 ) -> list[Path]:
     """Walk directory and migrate GenericSetup XML files (profiles/**/*.xml)."""
     config = load_config(config_path)
-    gs_config = config.get("genericsetup", {})
 
-    # Build dotted-name replacements
-    dotted_entries = gs_config.get("dotted_names", [])
-    replacements = _build_replacements(dotted_entries)
+    # Derive dotted-name replacements from the imports section
+    replacements = _build_replacements(config.get("imports", []))
 
     # View replacements
-    view_replacements = gs_config.get("view_replacements")
+    view_replacements = config.get("genericsetup", {}).get("view_replacements")
 
     modified = []
     # Look for XML files in profiles/ directories and also top-level XML

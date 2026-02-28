@@ -19,13 +19,12 @@ def config():
 
 @pytest.fixture
 def zcml_replacements(config):
-    return _build_replacements(config.get("zcml", []))
+    return _build_replacements(config.get("imports", []))
 
 
 @pytest.fixture
 def gs_replacements(config):
-    gs_config = config.get("genericsetup", {})
-    return _build_replacements(gs_config.get("dotted_names", []))
+    return _build_replacements(config.get("imports", []))
 
 
 @pytest.fixture

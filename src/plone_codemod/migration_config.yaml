@@ -451,63 +451,12 @@ imports:
 
 
 # =============================================================================
-# ZCML dotted-name replacements
+# GenericSetup XML view replacements
 # =============================================================================
-# Applied to class=, for=, provides=, interface=, etc. in .zcml files
-
-zcml:
-  - old: Products.CMFPlone.interfaces.controlpanel.
-    new: plone.base.interfaces.controlpanel.
-
-  - old: Products.CMFPlone.interfaces.syndication.
-    new: plone.base.interfaces.syndication.
-
-  - old: Products.CMFPlone.interfaces.constrains.
-    new: plone.base.interfaces.constrains.
-
-  - old: Products.CMFPlone.interfaces.IPloneSiteRoot
-    new: plone.base.interfaces.IPloneSiteRoot
-
-  - old: Products.CMFPlone.interfaces.INonInstallable
-    new: plone.base.interfaces.installable.INonInstallable
-
-  - old: Products.CMFPlone.interfaces.IPatternsSettings
-    new: plone.base.interfaces.patterns.IPatternsSettings
-
-  - old: Products.CMFPlone.interfaces.IBundleRegistry
-    new: plone.base.interfaces.resources.IBundleRegistry
-
-  - old: Products.CMFPlone.interfaces.IResourceRegistry
-    new: plone.base.interfaces.resources.IResourceRegistry
-
-  - old: plone.app.layout.navigation.interfaces.INavigationRoot
-    new: plone.base.interfaces.siteroot.INavigationRoot
-
-  # Language schema special case
-  - old: Products.CMFPlone.interfaces.controlpanel.ILanguageSchema
-    new: plone.i18n.interfaces.ILanguageSchema
-
-
-# =============================================================================
-# GenericSetup XML replacements
-# =============================================================================
-# Applied to registry.xml and other GenericSetup profile XML files
+# Dotted-name replacements in ZCML and GenericSetup XML are derived from the
+# imports section above. Only view name replacements need separate config.
 
 genericsetup:
-  dotted_names:
-    - old: Products.CMFPlone.interfaces.controlpanel.
-      new: plone.base.interfaces.controlpanel.
-
-    - old: Products.CMFPlone.interfaces.IResourceRegistry
-      new: plone.base.interfaces.resources.IResourceRegistry
-
-    - old: Products.CMFPlone.interfaces.IBundleRegistry
-      new: plone.base.interfaces.resources.IBundleRegistry
-
-    - old: Products.CMFPlone.interfaces.controlpanel.ILanguageSchema
-      new: plone.i18n.interfaces.ILanguageSchema
-
-  # View replacements in type XML
   view_replacements:
     folder_summary_view: folder_listing
     folder_tabular_view: folder_listing
