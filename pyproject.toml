@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "plone-codemod"
-version = "0.1.0"
+version = "0.2.0"
 description = "Automated code migration tool for Plone 5.2 → 6.x upgrades"
 readme = "README.md"
 license = "GPL-2.0-only"
