@@ -1,0 +1,182 @@
+rules:
+  # -------------------------------------------------------------------------
+  # Deprecated Products.CMFPlone imports
+  # -------------------------------------------------------------------------
+  - id: plone6-deprecated-cmfplone-utils-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone.utils import $NAME
+    message: >
+      Products.CMFPlone.utils.$NAME is deprecated.
+      Use plone.base.utils instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-cmfplone-interfaces-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone.interfaces import $NAME
+    message: >
+      Products.CMFPlone.interfaces.$NAME is deprecated.
+      Use plone.base.interfaces instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-cmfplone-interfaces-cp-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone.interfaces.controlpanel import $NAME
+    message: >
+      Products.CMFPlone.interfaces.controlpanel.$NAME is deprecated.
+      Use plone.base.interfaces.controlpanel instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-navtree-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone.browser.navtree import $NAME
+    message: >
+      Products.CMFPlone.browser.navtree.$NAME is deprecated.
+      Use plone.base.navigationroot instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-navigation-root-import
+    languages: [python]
+    patterns:
+      - pattern: from plone.app.layout.navigation.root import $NAME
+    message: >
+      plone.app.layout.navigation.root.$NAME is deprecated.
+      Use plone.base.navigationroot instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-navigation-interfaces-import
+    languages: [python]
+    patterns:
+      - pattern: from plone.app.layout.navigation.interfaces import INavigationRoot
+    message: >
+      plone.app.layout.navigation.interfaces.INavigationRoot is deprecated.
+      Use plone.base.interfaces.siteroot.INavigationRoot instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-plonebatch-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone.PloneBatch import $NAME
+    message: >
+      Products.CMFPlone.PloneBatch is deprecated.
+      Use plone.base.batch instead (Plone 6).
+    severity: ERROR
+
+  - id: plone6-deprecated-message-factory-import
+    languages: [python]
+    patterns:
+      - pattern: from Products.CMFPlone import PloneMessageFactory
+    message: >
+      Products.CMFPlone.PloneMessageFactory is deprecated.
+      Use plone.base.PloneMessageFactory instead (Plone 6).
+    severity: ERROR
+
+  # -------------------------------------------------------------------------
+  # Deprecated function calls (renamed in Plone 6)
+  # -------------------------------------------------------------------------
+  - id: plone6-deprecated-safe-unicode-call
+    languages: [python]
+    pattern: safe_unicode($...ARGS)
+    message: >
+      safe_unicode() is renamed to safe_text() in Plone 6.
+      Import from plone.base.utils.
+    severity: WARNING
+
+  - id: plone6-deprecated-getNavigationRoot-call
+    languages: [python]
+    pattern: getNavigationRoot($...ARGS)
+    message: >
+      getNavigationRoot() is renamed to get_navigation_root() in Plone 6.
+      Import from plone.base.navigationroot.
+    severity: WARNING
+
+  - id: plone6-deprecated-getNavigationRootObject-call
+    languages: [python]
+    pattern: getNavigationRootObject($...ARGS)
+    message: >
+      getNavigationRootObject() is renamed to get_navigation_root_object() in Plone 6.
+      Import from plone.base.navigationroot.
+    severity: WARNING
+
+  - id: plone6-deprecated-safeToInt-call
+    languages: [python]
+    pattern: safeToInt($...ARGS)
+    message: >
+      safeToInt() is renamed to safe_int() in Plone 6.
+      Import from plone.base.utils.
+    severity: WARNING
+
+  - id: plone6-deprecated-getEmptyTitle-call
+    languages: [python]
+    pattern: getEmptyTitle($...ARGS)
+    message: >
+      getEmptyTitle() is renamed to get_empty_title() in Plone 6.
+      Import from plone.base.utils.
+    severity: WARNING
+
+  # -------------------------------------------------------------------------
+  # Removed APIs
+  # -------------------------------------------------------------------------
+  - id: plone6-removed-getFolderContents
+    languages: [python]
+    pattern: $OBJ.getFolderContents($...ARGS)
+    message: >
+      getFolderContents() was removed in Plone 6.
+      Use obj.restrictedTraverse("@@contentlisting")() instead.
+    severity: ERROR
+
+  - id: plone6-removed-queryCatalog
+    languages: [python]
+    pattern: $OBJ.queryCatalog($...ARGS)
+    message: >
+      queryCatalog() was removed in Plone 6.
+      Use plone.api.content.find() or direct catalog queries instead.
+    severity: ERROR
+
+  - id: plone6-deprecated-getViewTemplateId
+    languages: [python]
+    pattern: $OBJ.getViewTemplateId($...ARGS)
+    message: >
+      getViewTemplateId() is deprecated in Plone 6.
+      Use @@plone_context_state view_template_id() instead.
+    severity: WARNING
+
+  # -------------------------------------------------------------------------
+  # ZCML / GenericSetup (generic text matching)
+  # -------------------------------------------------------------------------
+  - id: plone6-zcml-deprecated-cmfplone-ref
+    languages: [generic]
+    pattern: Products.CMFPlone
+    paths:
+      include:
+        - "*.zcml"
+    message: >
+      ZCML references deprecated Products.CMFPlone dotted name.
+      Update to plone.base equivalent.
+    severity: WARNING
+
+  - id: plone6-xml-deprecated-cmfplone-ref
+    languages: [generic]
+    pattern: Products.CMFPlone
+    paths:
+      include:
+        - "*/profiles/*/*.xml"
+        - "**/registry.xml"
+    message: >
+      GenericSetup XML references deprecated Products.CMFPlone dotted name.
+      Update to plone.base equivalent.
+    severity: WARNING
+
+  - id: plone6-zcml-deprecated-navigation-interfaces
+    languages: [generic]
+    pattern: plone.app.layout.navigation.interfaces.INavigationRoot
+    paths:
+      include:
+        - "*.zcml"
+    message: >
+      ZCML references deprecated plone.app.layout.navigation.interfaces.INavigationRoot.
+      Use plone.base.interfaces.siteroot.INavigationRoot instead.
+    severity: WARNING

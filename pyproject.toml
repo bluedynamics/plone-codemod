@@ -1,0 +1,25 @@
+[project]
+name = "plone-codemod"
+version = "0.1.0"
+description = "Automated code migration tool for Plone 5.2 → 6.x upgrades"
+requires-python = ">=3.10"
+dependencies = [
+    "libcst>=1.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+audit = [
+    "semgrep",
+]
+dev = [
+    "pytest",
+    "semgrep",
+]
+
+[project.scripts]
+plone-codemod = "runner:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
