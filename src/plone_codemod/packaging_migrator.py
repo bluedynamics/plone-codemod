@@ -981,6 +981,42 @@ def _dict_to_tomlkit(d: dict) -> tomlkit.items.Table:
 # ---------------------------------------------------------------------------
 
 
+def _check_manifest_in(project_dir: Path) -> list[str]:
+    """Warn about non-boilerplate MANIFEST.in rules that may need manual porting.
+
+    Hatchling auto-includes Python packages and respects .gitignore, so the
+    standard boilerplate (``graft src``, ``include *.rst``,
+    ``global-exclude *.pyc``) is redundant.  But custom rules like ``prune``,
+    ``recursive-exclude``, or unusual ``include`` directives may carry
+    semantics that hatchling won't replicate automatically.
+    """
+    manifest = project_dir / "MANIFEST.in"
+    if not manifest.exists():
+        return []
+
+    # Patterns that are safe to ignore — hatchling handles them.
+    boilerplate = re.compile(
+        r"^\s*(?:#.*"  # comments
+        r"|graft\s+(?:src|docs?)"
+        r"|recursive-include\s+(?:src|docs?)\s+\*"
+        r"|include\s+\*\.(?:rst|md|txt|cfg|toml)"
+        r"|include\s+(?:LICENSE|LICEN[CS]E\..*|COPYING|NOTICE|AUTHORS|CONTRIBUTORS|tox\.ini|Makefile|pyproject\.toml)(?:\s|$)"
+        r"|global-exclude\s+\*\.py[cod]"
+        r"|global-exclude\s+__pycache__"
+        r")$",
+        re.IGNORECASE,
+    )
+
+    warnings: list[str] = []
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not boilerplate.match(stripped):
+            warnings.append(f"MANIFEST.in rule may need manual porting: {stripped}")
+    return warnings
+
+
 def cleanup_old_files(project_dir: Path, dry_run: bool = False) -> list[Path]:
     """Delete setup.py, setup.cfg, MANIFEST.in after migration.
 
@@ -1116,10 +1152,13 @@ def migrate_packaging(
         pyproject_path.write_text(content, encoding="utf-8")
     created.append(pyproject_path)
 
-    # 7. Clean up old files
+    # 7. Check MANIFEST.in for non-boilerplate rules before deleting
+    result_warnings.extend(_check_manifest_in(project_dir))
+
+    # 8. Clean up old files
     deleted = cleanup_old_files(project_dir, dry_run)
 
-    # 8. Remove check-manifest pre-commit hook (MANIFEST.in is gone)
+    # 9. Remove check-manifest pre-commit hook (MANIFEST.in is gone)
     modified = cleanup_pre_commit_check_manifest(project_dir, dry_run)
 
     return {

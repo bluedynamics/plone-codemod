@@ -945,6 +945,48 @@ repos:
             modified = cleanup_pre_commit_check_manifest(root)
             assert modified == []
 
+    def test_manifest_in_boilerplate_no_warnings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "setup.py").write_text(
+                "from setuptools import setup\nsetup(name='pkg', version='1.0')\n"
+            )
+            (root / "MANIFEST.in").write_text("""\
+# comment
+graft src
+graft docs
+recursive-include docs *
+include *.rst
+include *.txt
+include LICENSE
+include pyproject.toml
+global-exclude *.pyc
+global-exclude *.pyo
+""")
+            result = migrate_packaging(root)
+            manifest_warnings = [w for w in result["warnings"] if "MANIFEST.in" in w]
+            assert manifest_warnings == []
+
+    def test_manifest_in_custom_rules_warn(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "setup.py").write_text(
+                "from setuptools import setup\nsetup(name='pkg', version='1.0')\n"
+            )
+            (root / "MANIFEST.in").write_text("""\
+graft src
+include *.rst
+prune design
+recursive-exclude news *
+include some_custom_file.dat
+""")
+            result = migrate_packaging(root)
+            manifest_warnings = [w for w in result["warnings"] if "MANIFEST.in" in w]
+            assert len(manifest_warnings) == 3
+            assert any("prune design" in w for w in manifest_warnings)
+            assert any("recursive-exclude news" in w for w in manifest_warnings)
+            assert any("some_custom_file.dat" in w for w in manifest_warnings)
+
     def test_full_migration_removes_check_manifest_hook(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

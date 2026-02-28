@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0a4 (unreleased)
+
+- Warn about non-boilerplate `MANIFEST.in` rules that may need manual
+  porting to `[tool.hatch.build]` configuration.
+  [jensens]
+
 ## 1.0.0a3 (2026-02-28)
 
 - Strip `License ::` classifiers from generated `pyproject.toml` when a
