@@ -126,6 +126,8 @@ Converts old-style namespace packages (`pkg_resources` / `pkgutil`) to PEP 420 i
 
 **Files affected:** `__init__.py` files in namespace package directories, `setup.py`, `setup.cfg`
 
+**Already migrated to pyproject.toml?** Phase 7 still works: it cleans the `__init__.py` files regardless of the packaging format. However, it does not modify `pyproject.toml` itself. If you have already manually migrated to `pyproject.toml`, you are expected to have also handled namespace package configuration there yourself (e.g., using implicit namespaces with hatchling, or `[tool.setuptools.packages.find]` with `namespaces = true`).
+
 ## Phase 8: Packaging Migration
 
 **Module:** `packaging_migrator.py`
@@ -147,5 +149,7 @@ Converts `setup.py` / `setup.cfg` to a PEP 621 compliant `pyproject.toml` with h
 - Deletes `setup.py`, `setup.cfg`, `MANIFEST.in` after migration
 
 **Important:** Run Phase 7 before Phase 8 (`--namespaces --packaging`) so `namespace_packages` is cleaned before `pyproject.toml` generation.
+
+**Already have a `[project]` section?** Phase 8 detects an existing `[project]` section in `pyproject.toml` and skips the migration entirely to avoid overwriting a manually written or previously migrated configuration.
 
 **Files affected:** `setup.py`, `setup.cfg`, `MANIFEST.in` (deleted), `pyproject.toml` (created/updated), `.pre-commit-config.yaml`
