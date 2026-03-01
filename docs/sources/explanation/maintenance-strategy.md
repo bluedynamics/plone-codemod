@@ -34,4 +34,17 @@ Projects with non-standard needs can use `--config` to supply their own `migrati
 
 ## Release process
 
-Maintainers release to PyPI when meaningful rule additions accumulate. If you need a release, contact the maintainers (Jens Klein, Johannes Raggam, BlueDynamics Alliance).
+Releases are fully automated via GitHub Actions and trusted publishing:
+
+1. **Every push to `main`** runs QA (ruff, ty) and tests (Python 3.12-3.14). If both pass, the package is built and published to [test.pypi.org](https://test.pypi.org/project/plone-codemod/) as a dev version.
+
+2. **To release to PyPI**, a maintainer creates a GitHub Release:
+   - Tag the release (the version is derived from the git tag via `hatch-vcs`)
+   - Create and publish the release on GitHub
+   - CI automatically runs QA + tests, builds the package, and publishes to [pypi.org](https://pypi.org/project/plone-codemod/)
+
+3. **Pull requests and branches** run QA + tests but do not publish anything.
+
+No manual PyPI credentials or `twine upload` are needed -- the pipeline uses PyPI trusted publishing (OIDC).
+
+If you need a release, contact the maintainers (Jens Klein, Johannes Raggam, BlueDynamics Alliance) or open an issue.
