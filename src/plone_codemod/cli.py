@@ -49,15 +49,6 @@ def run_python_migration(
         print("  ERROR: libcst not installed. Run: pip install libcst pyyaml")
         return
 
-    # Ensure .libcst.codemod.yaml exists in the source dir
-    codemod_yaml = source_dir / ".libcst.codemod.yaml"
-    if not codemod_yaml.exists():
-        print(f"  Initializing libcst in {source_dir}")
-        subprocess.run(
-            [sys.executable, "-m", "libcst.tool", "initialize", str(source_dir)],
-            check=False,
-        )
-
     from plone_codemod.import_migrator import load_mappings
 
     mappings = load_mappings(config_path)
@@ -82,13 +73,19 @@ def run_python_migration(
             print(f"    ... and {len(unique_mappings) - 10} more")
         return
 
-    # Run the codemod via subprocess to ensure clean module state
+    # Run the codemod via subprocess to ensure clean module state.
+    # -x (--external): treat the command as a direct module path instead of
+    #     searching .libcst.codemod.yaml "modules" list — avoids the
+    #     "Could not find ... in any configured modules" error.
+    # --no-format: skip the formatter step (avoids requiring black/ruff).
     result = subprocess.run(
         [
             sys.executable,
             "-m",
             "libcst.tool",
             "codemod",
+            "-x",
+            "--no-format",
             "plone_codemod.import_migrator.PloneImportMigrator",
             str(source_dir),
         ],
