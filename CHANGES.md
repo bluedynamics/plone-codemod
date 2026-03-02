@@ -2,6 +2,11 @@
 
 ## 1.0.0a4 (unreleased)
 
+- Fix Phase 1 failing with "Could not find plone_codemod.import_migrator
+  in any configured modules". Use libcst `-x` flag for direct module
+  import and `--no-format` to skip requiring a formatter.
+  [jensens]
+
 - Warn about non-boilerplate `MANIFEST.in` rules that may need manual
   porting to `[tool.hatch.build]` configuration.
   [jensens]
