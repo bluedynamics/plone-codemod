@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0a4 (unreleased)
+## 1.0.0a4 (2026-03-02)
 
 - Fix Phase 1 failing with "Could not find plone_codemod.import_migrator
   in any configured modules". Use libcst `-x` flag for direct module
