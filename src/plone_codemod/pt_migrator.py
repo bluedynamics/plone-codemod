@@ -13,6 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import warnings
 import yaml
 
 
@@ -59,7 +60,17 @@ def _migrate_files(
     """Walk directory, apply transformer to matching files."""
     modified = []
     for filepath in sorted(root.rglob(pattern)):
-        content = filepath.read_text(encoding="utf-8")
+        try:
+            content = filepath.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            warnings.warn(
+                f"{filepath} is not UTF-8 encoded — skipping. "
+                f"XML/PT files should be UTF-8. Please fix the encoding.",
+                stacklevel=2,
+            )
+            continue
+        except OSError:
+            continue
         new_content = transformer(content, **kwargs)
         if new_content != content:
             modified.append(filepath)

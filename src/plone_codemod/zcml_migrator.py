@@ -12,6 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import warnings
 import yaml
 
 
@@ -82,7 +83,17 @@ def migrate_file(
     filepath: Path, transformer: Callable[..., str], **kwargs: Any
 ) -> bool:
     """Read file, apply transformer, write back if changed. Returns True if modified."""
-    content = filepath.read_text(encoding="utf-8")
+    try:
+        content = filepath.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        warnings.warn(
+            f"{filepath} is not UTF-8 encoded — skipping. "
+            f"XML/ZCML files should be UTF-8. Please fix the encoding.",
+            stacklevel=2,
+        )
+        return False
+    except OSError:
+        return False
     new_content = transformer(content, **kwargs)
     if new_content != content:
         filepath.write_text(new_content, encoding="utf-8")
@@ -102,7 +113,17 @@ def migrate_zcml_files(
     modified = []
     for zcml_file in sorted(root.rglob("*.zcml")):
         if dry_run:
-            content = zcml_file.read_text(encoding="utf-8")
+            try:
+                content = zcml_file.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                warnings.warn(
+                    f"{zcml_file} is not UTF-8 encoded — skipping. "
+                    f"ZCML files should be UTF-8. Please fix the encoding.",
+                    stacklevel=2,
+                )
+                continue
+            except OSError:
+                continue
             new_content = migrate_zcml_content(content, replacements)
             if new_content != content:
                 modified.append(zcml_file)
@@ -139,7 +160,17 @@ def migrate_genericsetup_files(
             continue
 
         if dry_run:
-            content = xml_file.read_text(encoding="utf-8")
+            try:
+                content = xml_file.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                warnings.warn(
+                    f"{xml_file} is not UTF-8 encoded — skipping. "
+                    f"XML files should be UTF-8. Please fix the encoding.",
+                    stacklevel=2,
+                )
+                continue
+            except OSError:
+                continue
             new_content = migrate_genericsetup_content(
                 content, replacements, view_replacements
             )

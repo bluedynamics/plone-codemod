@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0a5 (2026-03-02)
+
+- Warn about non-UTF-8 encoded files instead of crashing with
+  `UnicodeDecodeError`. XML/ZCML/PT files should be UTF-8; the tool
+  now prints a warning and skips the file so users can fix the encoding.
+  [jensens]
+
 ## 1.0.0a4 (2026-03-02)
 
 - Fix Phase 1 failing with "Could not find plone_codemod.import_migrator
