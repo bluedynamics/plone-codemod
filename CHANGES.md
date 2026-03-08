@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0a6 (unreleased)
+## 1.0.0a6 (2026-03-08)
 
 - Replace the plone.app.z3cform relateditems widget with the contentbrowser
   widget.
