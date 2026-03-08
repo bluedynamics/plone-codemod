@@ -2,6 +2,12 @@
 
 ## 1.0.0a6 (unreleased)
 
+- Replace the plone.app.z3cform relateditems widget with the contentbrowser
+  widget.
+  The contentbrowser widget is a drop-in replacement for the related items
+  widget. The related items widget will be removed in Plone 7.
+  [thet]
+
 - Add deprecations from plone.app.z3cform.
   [thet]
 

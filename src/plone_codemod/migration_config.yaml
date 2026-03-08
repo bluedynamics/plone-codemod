@@ -497,11 +497,12 @@ imports:
     new: plone.app.z3cform.widgets.querystring.QueryStringWidget
 
   # Related items widgets moved to widgets.relateditems module
+  # and superseded by the new contentbrowser
   - old: plone.app.z3cform.widget.RelatedItemsFieldWidget
-    new: plone.app.z3cform.widgets.relateditems.RelatedItemsFieldWidget
+    new: plone.app.z3cform.widgets.contentbrowser.ContentBrowserFieldWidget
 
   - old: plone.app.z3cform.widget.RelatedItemsWidget
-    new: plone.app.z3cform.widgets.relateditems.RelatedItemsWidget
+    new: plone.app.z3cform.widgets.contentbrowser.ContentBrowserItemsWidget
 
   # Rich text widgets moved to widgets.richtext module
   - old: plone.app.z3cform.widget.RichTextFieldWidget
