@@ -449,6 +449,135 @@ imports:
   - old: plone.dexterity.utils.SchemaNameEncoder
     new: plone.dexterity.schema.SchemaNameEncoder
 
+  # ---------------------------------------------------------------------------
+  # plone.app.z3cform widget migrations
+  # ---------------------------------------------------------------------------
+  # Converters moved to dedicated module
+  - old: plone.app.z3cform.widget.DatetimeWidgetConverter
+    new: plone.app.z3cform.converters.DatetimeWidgetConverter
+
+  - old: plone.app.z3cform.widget.DateWidgetConverter
+    new: plone.app.z3cform.converters.DateWidgetConverter
+
+  # Base widget moved to widgets.base module
+  - old: plone.app.z3cform.widget.BaseWidget
+    new: plone.app.z3cform.widgets.base.BaseWidget
+
+  # DateTime widgets moved to widgets.datetime module
+  - old: plone.app.z3cform.widget.DateFieldWidget
+    new: plone.app.z3cform.widgets.datetime.DateFieldWidget
+
+  - old: plone.app.z3cform.widget.DatetimeFieldWidget
+    new: plone.app.z3cform.widgets.datetime.DatetimeFieldWidget
+
+  - old: plone.app.z3cform.widget.DatetimeWidget
+    new: plone.app.z3cform.widgets.datetime.DatetimeWidget
+
+  - old: plone.app.z3cform.widget.DateWidget
+    new: plone.app.z3cform.widgets.datetime.DateWidget
+
+  - old: plone.app.z3cform.widget.TimeFieldWidget
+    new: plone.app.z3cform.widgets.datetime.TimeFieldWidget
+
+  - old: plone.app.z3cform.widget.TimeWidget
+    new: plone.app.z3cform.widgets.datetime.TimeWidget
+
+  # Link widgets moved to widgets.link module
+  - old: plone.app.z3cform.widget.LinkFieldWidget
+    new: plone.app.z3cform.widgets.link.LinkFieldWidget
+
+  - old: plone.app.z3cform.widget.LinkWidget
+    new: plone.app.z3cform.widgets.link.LinkWidget
+
+  # QueryString widgets moved to widgets.querystring module
+  - old: plone.app.z3cform.widget.QueryStringFieldWidget
+    new: plone.app.z3cform.widgets.querystring.QueryStringFieldWidget
+
+  - old: plone.app.z3cform.widget.QueryStringWidget
+    new: plone.app.z3cform.widgets.querystring.QueryStringWidget
+
+  # Related items widgets moved to widgets.relateditems module
+  - old: plone.app.z3cform.widget.RelatedItemsFieldWidget
+    new: plone.app.z3cform.widgets.relateditems.RelatedItemsFieldWidget
+
+  - old: plone.app.z3cform.widget.RelatedItemsWidget
+    new: plone.app.z3cform.widgets.relateditems.RelatedItemsWidget
+
+  # Rich text widgets moved to widgets.richtext module
+  - old: plone.app.z3cform.widget.RichTextFieldWidget
+    new: plone.app.z3cform.widgets.richtext.RichTextFieldWidget
+
+  - old: plone.app.z3cform.widget.RichTextWidget
+    new: plone.app.z3cform.widgets.richtext.RichTextWidget
+
+  # Select widgets moved to widgets.select module
+  - old: plone.app.z3cform.widget.AjaxSelectFieldWidget
+    new: plone.app.z3cform.widgets.select.AjaxSelectFieldWidget
+
+  - old: plone.app.z3cform.widget.AjaxSelectWidget
+    new: plone.app.z3cform.widgets.select.AjaxSelectWidget
+
+  # Note: SelectFieldWidget is mapped to Select2FieldWidget
+  - old: plone.app.z3cform.widget.SelectFieldWidget
+    new: plone.app.z3cform.widgets.select.Select2FieldWidget
+
+  # Note: SelectWidget is mapped to Select2Widget
+  - old: plone.app.z3cform.widget.SelectWidget
+    new: plone.app.z3cform.widgets.select.Select2Widget
+
+  # Single checkbox widgets moved to widgets.singlecheckbox module
+  - old: plone.app.z3cform.widget.SingleCheckBoxBoolFieldWidget
+    new: plone.app.z3cform.widgets.singlecheckbox.SingleCheckBoxBoolFieldWidget
+
+  - old: plone.app.z3cform.widget.SingleCheckBoxBoolWidget
+    new: plone.app.z3cform.widgets.singlecheckbox.SingleCheckBoxBoolWidget
+
+  - old: plone.app.z3cform.widget.SingleCheckBoxWidget
+    new: plone.app.z3cform.widgets.singlecheckbox.SingleCheckBoxWidget
+
+  # ---------------------------------------------------------------------------
+  # plone.app.z3cform WYSIWYG widget migrations
+  # ---------------------------------------------------------------------------
+  # WYSIWYG widget interfaces and classes moved to richtext module
+  - old: plone.app.z3cform.wysiwyg.widget.IWysiwygWidget
+    new: plone.app.z3cform.interfaces.IRichTextWidget
+
+  - old: plone.app.z3cform.wysiwyg.widget.WysiwygFieldWidget
+    new: plone.app.z3cform.widgets.richtext.RichTextFieldWidget
+
+  - old: plone.app.z3cform.wysiwyg.widget.WysiwygWidget
+    new: plone.app.z3cform.widgets.richtext.RichTextWidget
+
+  - old: plone.app.z3cform.wysiwyg.WysiwygFieldWidget
+    new: plone.app.z3cform.widgets.richtext.RichTextFieldWidget
+
+  # ---------------------------------------------------------------------------
+  # plone.app.z3cform interface migrations
+  # ---------------------------------------------------------------------------
+  # Schema interfaces moved to zope.schema.interfaces
+  - old: plone.app.z3cform.interfaces.IDateField
+    new: zope.schema.interfaces.IDate
+
+  - old: plone.app.z3cform.interfaces.IDatetimeField
+    new: zope.schema.interfaces.IDatetime
+
+  # ---------------------------------------------------------------------------
+  # plone.app.z3cform layout migrations
+  # ---------------------------------------------------------------------------
+  # Layout utilities moved to plone.z3cform.layout
+  - old: plone.app.z3cform.layout.FormWrapper
+    new: plone.z3cform.layout.FormWrapper
+
+  - old: plone.app.z3cform.layout.wrap_form
+    new: plone.z3cform.layout.wrap_form
+
+  # ---------------------------------------------------------------------------
+  # plone.namedfile storage migration
+  # ---------------------------------------------------------------------------
+  # Storage class moved to plone.namedfile.storages
+  - old: plone.app.z3cform.factories.Zope2FileUploadStorable
+    new: plone.namedfile.storages.Zope2FileUploadStorable
+
 
 # =============================================================================
 # GenericSetup XML view replacements

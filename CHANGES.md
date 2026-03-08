@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0a6 (unreleased)
+
+- Add deprecations from plone.app.z3cform.
+  [thet]
+
 ## 1.0.0a5 (2026-03-02)
 
 - Warn about non-UTF-8 encoded files instead of crashing with
@@ -38,7 +43,7 @@
 
 - Add Phase 8: Packaging migration (`--packaging`).
   Converts `setup.py`/`setup.cfg` to PEP 621 `pyproject.toml`
-  with hatchling build backend.  Includes tool config conversion
+  with hatchling build backend. Includes tool config conversion
   (flake8/isort/pycodestyle to ruff, pytest, coverage sections).
   [jensens]
 
