@@ -178,14 +178,17 @@ class TestFileOperations:
             content = xml_file.read_text()
             assert "plone.base.interfaces.controlpanel.IEditingSchema" in content
 
-    def test_skips_non_profile_xml(self, config):
-        """XML files outside profiles/ directories should be skipped."""
+    def test_migrate_genericsetup_files_in_other_locations(self, config):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            xml_file = root / "random.xml"
+            profiles = root / "other"
+            profiles.mkdir(parents=True)
+            xml_file = profiles / "resources.xml"
             xml_file.write_text(
-                '<records interface="Products.CMFPlone.interfaces.controlpanel.IEditingSchema" />'
+                '<records interface="Products.CMFPlone.interfaces.IBundleRegistry" />'
             )
 
             modified = migrate_genericsetup_files(root)
-            assert len(modified) == 0
+            assert len(modified) == 1
+            content = xml_file.read_text()
+            assert "plone.base.interfaces.resources.IBundleRegistry" in content

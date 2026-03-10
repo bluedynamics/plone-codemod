@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0a7 (unreleased)
+
+- Generic setup migration: Migrate any GenericSetup xml files in any location.
+  This fixes a problem, where upgrade steps were not migrated.
+  [thet]
+
 ## 1.0.0a6 (2026-03-08)
 
 - Replace the plone.app.z3cform relateditems widget with the contentbrowser

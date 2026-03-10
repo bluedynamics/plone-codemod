@@ -139,7 +139,7 @@ def migrate_genericsetup_files(
     config_path: Path = CONFIG_PATH,
     dry_run: bool = False,
 ) -> list[Path]:
-    """Walk directory and migrate GenericSetup XML files (profiles/**/*.xml)."""
+    """Walk directory and migrate all GenericSetup XML files."""
     config = load_config(config_path)
 
     # Derive dotted-name replacements from the imports section
@@ -149,14 +149,10 @@ def migrate_genericsetup_files(
     view_replacements = config.get("genericsetup", {}).get("view_replacements")
 
     modified = []
-    # Look for XML files in profiles/ directories and also top-level XML
+    # Look for all XML files (GenericSetup can be in various locations)
     for xml_file in sorted(root.rglob("*.xml")):
-        # Skip non-GenericSetup files
+        # Skip ZCML files (they are handled separately)
         if ".zcml" in xml_file.suffixes:
-            continue
-        # Focus on profiles directories and registry files
-        parts_str = str(xml_file)
-        if "profiles" not in parts_str and "registry.xml" not in xml_file.name:
             continue
 
         if dry_run:
