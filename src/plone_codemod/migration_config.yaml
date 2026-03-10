@@ -99,175 +99,217 @@ imports:
   # ---------------------------------------------------------------------------
   # Site root & navigation interfaces
   # ---------------------------------------------------------------------------
-  - old: Products.CMFPlone.interfaces.IPloneSiteRoot
-    new: plone.base.interfaces.IPloneSiteRoot
 
+  # IPloneSiteRoot
+  - old: Products.CMFPlone.interfaces.IPloneSiteRoot
+    new: plone.base.interfaces.siteroot.IPloneSiteRoot
+
+  - old: Products.CMFPlone.interfaces.siteroot.IPloneSiteRoot
+    new: plone.base.interfaces.siteroot.IPloneSiteRoot
+
+  # IMigratingPloneSiteRoot
   - old: Products.CMFPlone.interfaces.IMigratingPloneSiteRoot
     new: plone.base.interfaces.siteroot.IMigratingPloneSiteRoot
 
+  - old: Products.CMFPlone.interfaces.siteroot.IMigratingPloneSiteRoot
+    new: plone.base.interfaces.siteroot.IMigratingPloneSiteRoot
+
+  # ITestCasePloneSiteRoot
   - old: Products.CMFPlone.interfaces.ITestCasePloneSiteRoot
     new: plone.base.interfaces.siteroot.ITestCasePloneSiteRoot
 
+  - old: Products.CMFPlone.interfaces.siteroot.ITestCasePloneSiteRoot
+    new: plone.base.interfaces.siteroot.ITestCasePloneSiteRoot
+
+  # INavigationRoot
   - old: plone.app.layout.navigation.interfaces.INavigationRoot
     new: plone.base.interfaces.siteroot.INavigationRoot
 
   - old: Products.CMFPlone.interfaces.INavigationRoot
     new: plone.base.interfaces.siteroot.INavigationRoot
 
+  - old: Products.CMFPlone.interfaces.siteroot.INavigationRoot
+    new: plone.base.interfaces.siteroot.INavigationRoot
+
   # ---------------------------------------------------------------------------
   # Control panel interfaces
   # ---------------------------------------------------------------------------
+
+  # INavigationSchema
   - old: Products.CMFPlone.interfaces.INavigationSchema
     new: plone.base.interfaces.controlpanel.INavigationSchema
 
-  - old: Products.CMFPlone.interfaces.IEditingSchema
-    new: plone.base.interfaces.controlpanel.IEditingSchema
-
-  - old: Products.CMFPlone.interfaces.ISearchSchema
-    new: plone.base.interfaces.controlpanel.ISearchSchema
-
-  - old: Products.CMFPlone.interfaces.ISiteSchema
-    new: plone.base.interfaces.controlpanel.ISiteSchema
-
-  - old: Products.CMFPlone.interfaces.ISecuritySchema
-    new: plone.base.interfaces.controlpanel.ISecuritySchema
-
-  - old: Products.CMFPlone.interfaces.IMailSchema
-    new: plone.base.interfaces.controlpanel.IMailSchema
-
-  - old: Products.CMFPlone.interfaces.IImagingSchema
-    new: plone.base.interfaces.controlpanel.IImagingSchema
-
-  - old: Products.CMFPlone.interfaces.IFilterSchema
-    new: plone.base.interfaces.controlpanel.IFilterSchema
-
-  - old: Products.CMFPlone.interfaces.IMarkupSchema
-    new: plone.base.interfaces.controlpanel.IMarkupSchema
-
-  - old: Products.CMFPlone.interfaces.IDateAndTimeSchema
-    new: plone.base.interfaces.controlpanel.IDateAndTimeSchema
-
-  - old: Products.CMFPlone.interfaces.IMaintenanceSchema
-    new: plone.base.interfaces.controlpanel.IMaintenanceSchema
-
-  - old: Products.CMFPlone.interfaces.ILinkSchema
-    new: plone.base.interfaces.controlpanel.ILinkSchema
-
-  - old: Products.CMFPlone.interfaces.ILoginSchema
-    new: plone.base.interfaces.controlpanel.ILoginSchema
-
-  - old: Products.CMFPlone.interfaces.IControlPanel
-    new: plone.base.interfaces.controlpanel.IControlPanel
-
-  - old: Products.CMFPlone.interfaces.ISocialMediaSchema
-    new: plone.base.interfaces.controlpanel.ISocialMediaSchema
-
-  - old: Products.CMFPlone.interfaces.IActionSchema
-    new: plone.base.interfaces.controlpanel.IActionSchema
-
-  - old: Products.CMFPlone.interfaces.INewActionSchema
-    new: plone.base.interfaces.controlpanel.INewActionSchema
-
-  - old: Products.CMFPlone.interfaces.ITypesSchema
-    new: plone.base.interfaces.controlpanel.ITypesSchema
-
-  - old: Products.CMFPlone.interfaces.IUserGroupsSettingsSchema
-    new: plone.base.interfaces.controlpanel.IUserGroupsSettingsSchema
-
-  # Control panel sub-module imports
   - old: Products.CMFPlone.interfaces.controlpanel.INavigationSchema
     new: plone.base.interfaces.controlpanel.INavigationSchema
+
+  # IEditingSchema
+  - old: Products.CMFPlone.interfaces.IEditingSchema
+    new: plone.base.interfaces.controlpanel.IEditingSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.IEditingSchema
     new: plone.base.interfaces.controlpanel.IEditingSchema
 
+  # ISearchSchema
+  - old: Products.CMFPlone.interfaces.ISearchSchema
+    new: plone.base.interfaces.controlpanel.ISearchSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ISearchSchema
     new: plone.base.interfaces.controlpanel.ISearchSchema
+
+  # ISiteSchema
+  - old: Products.CMFPlone.interfaces.ISiteSchema
+    new: plone.base.interfaces.controlpanel.ISiteSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ISiteSchema
     new: plone.base.interfaces.controlpanel.ISiteSchema
 
+  # ISecuritySchema
+  - old: Products.CMFPlone.interfaces.ISecuritySchema
+    new: plone.base.interfaces.controlpanel.ISecuritySchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ISecuritySchema
     new: plone.base.interfaces.controlpanel.ISecuritySchema
+
+  # IMailSchema
+  - old: Products.CMFPlone.interfaces.IMailSchema
+    new: plone.base.interfaces.controlpanel.IMailSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.IMailSchema
     new: plone.base.interfaces.controlpanel.IMailSchema
 
+  # IImagingSchema
+  - old: Products.CMFPlone.interfaces.IImagingSchema
+    new: plone.base.interfaces.controlpanel.IImagingSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.IImagingSchema
     new: plone.base.interfaces.controlpanel.IImagingSchema
+
+  # IFilterSchema
+  - old: Products.CMFPlone.interfaces.IFilterSchema
+    new: plone.base.interfaces.controlpanel.IFilterSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.IFilterSchema
     new: plone.base.interfaces.controlpanel.IFilterSchema
 
+  # IMarkupSchema
+  - old: Products.CMFPlone.interfaces.IMarkupSchema
+    new: plone.base.interfaces.controlpanel.IMarkupSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.IMarkupSchema
     new: plone.base.interfaces.controlpanel.IMarkupSchema
+
+  # IDateAndTimeSchema
+  - old: Products.CMFPlone.interfaces.IDateAndTimeSchema
+    new: plone.base.interfaces.controlpanel.IDateAndTimeSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.IDateAndTimeSchema
     new: plone.base.interfaces.controlpanel.IDateAndTimeSchema
 
+  # IMaintenanceSchema
+  - old: Products.CMFPlone.interfaces.IMaintenanceSchema
+    new: plone.base.interfaces.controlpanel.IMaintenanceSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.IMaintenanceSchema
     new: plone.base.interfaces.controlpanel.IMaintenanceSchema
+
+  # ILinkSchema
+  - old: Products.CMFPlone.interfaces.ILinkSchema
+    new: plone.base.interfaces.controlpanel.ILinkSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ILinkSchema
     new: plone.base.interfaces.controlpanel.ILinkSchema
 
+  # ILoginSchema
+  - old: Products.CMFPlone.interfaces.ILoginSchema
+    new: plone.base.interfaces.controlpanel.ILoginSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ILoginSchema
     new: plone.base.interfaces.controlpanel.ILoginSchema
+
+  # IControlPanel
+  - old: Products.CMFPlone.interfaces.IControlPanel
+    new: plone.base.interfaces.controlpanel.IControlPanel
 
   - old: Products.CMFPlone.interfaces.controlpanel.IControlPanel
     new: plone.base.interfaces.controlpanel.IControlPanel
 
+  # ISocialMediaSchema
+  - old: Products.CMFPlone.interfaces.ISocialMediaSchema
+    new: plone.base.interfaces.controlpanel.ISocialMediaSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ISocialMediaSchema
     new: plone.base.interfaces.controlpanel.ISocialMediaSchema
+
+  # IActionSchema
+  - old: Products.CMFPlone.interfaces.IActionSchema
+    new: plone.base.interfaces.controlpanel.IActionSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.IActionSchema
     new: plone.base.interfaces.controlpanel.IActionSchema
 
+  # INewActionSchema
+  - old: Products.CMFPlone.interfaces.INewActionSchema
+    new: plone.base.interfaces.controlpanel.INewActionSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.INewActionSchema
     new: plone.base.interfaces.controlpanel.INewActionSchema
+
+  # ITypesSchema
+  - old: Products.CMFPlone.interfaces.ITypesSchema
+    new: plone.base.interfaces.controlpanel.ITypesSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ITypesSchema
     new: plone.base.interfaces.controlpanel.ITypesSchema
 
+  # IUserGroupsSettingsSchema
+  - old: Products.CMFPlone.interfaces.IUserGroupsSettingsSchema
+    new: plone.base.interfaces.controlpanel.IUserGroupsSettingsSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.IUserGroupsSettingsSchema
     new: plone.base.interfaces.controlpanel.IUserGroupsSettingsSchema
 
-  # Language schema: special case → plone.i18n, NOT plone.base
-  - old: Products.CMFPlone.interfaces.controlpanel.ILanguageSchema
+  # ILanguageSchema (special case → plone.i18n, NOT plone.base)
+  - old: Products.CMFPlone.interfaces.ILanguageSchema
     new: plone.i18n.interfaces.ILanguageSchema
 
-  - old: Products.CMFPlone.interfaces.ILanguageSchema
+  - old: Products.CMFPlone.interfaces.controlpanel.ILanguageSchema
     new: plone.i18n.interfaces.ILanguageSchema
 
   # ---------------------------------------------------------------------------
   # TinyMCE interfaces
   # ---------------------------------------------------------------------------
+
+  # ITinyMCESchema
   - old: Products.CMFPlone.interfaces.ITinyMCESchema
     new: plone.base.interfaces.controlpanel.ITinyMCESchema
-
-  - old: Products.CMFPlone.interfaces.ITinyMCELayoutSchema
-    new: plone.base.interfaces.controlpanel.ITinyMCELayoutSchema
-
-  - old: Products.CMFPlone.interfaces.ITinyMCEPluginSchema
-    new: plone.base.interfaces.controlpanel.ITinyMCEPluginSchema
-
-  - old: Products.CMFPlone.interfaces.ITinyMCEAdvancedSchema
-    new: plone.base.interfaces.controlpanel.ITinyMCEAdvancedSchema
-
-  - old: Products.CMFPlone.interfaces.ITinyMCEResourceTypesSchema
-    new: plone.base.interfaces.controlpanel.ITinyMCEResourceTypesSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ITinyMCESchema
     new: plone.base.interfaces.controlpanel.ITinyMCESchema
 
+  # ITinyMCELayoutSchema
+  - old: Products.CMFPlone.interfaces.ITinyMCELayoutSchema
+    new: plone.base.interfaces.controlpanel.ITinyMCELayoutSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ITinyMCELayoutSchema
     new: plone.base.interfaces.controlpanel.ITinyMCELayoutSchema
+
+  # ITinyMCEPluginSchema
+  - old: Products.CMFPlone.interfaces.ITinyMCEPluginSchema
+    new: plone.base.interfaces.controlpanel.ITinyMCEPluginSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ITinyMCEPluginSchema
     new: plone.base.interfaces.controlpanel.ITinyMCEPluginSchema
 
+  # ITinyMCEAdvancedSchema
+  - old: Products.CMFPlone.interfaces.ITinyMCEAdvancedSchema
+    new: plone.base.interfaces.controlpanel.ITinyMCEAdvancedSchema
+
   - old: Products.CMFPlone.interfaces.controlpanel.ITinyMCEAdvancedSchema
     new: plone.base.interfaces.controlpanel.ITinyMCEAdvancedSchema
+
+  # ITinyMCEResourceTypesSchema
+  - old: Products.CMFPlone.interfaces.ITinyMCEResourceTypesSchema
+    new: plone.base.interfaces.controlpanel.ITinyMCEResourceTypesSchema
 
   - old: Products.CMFPlone.interfaces.controlpanel.ITinyMCEResourceTypesSchema
     new: plone.base.interfaces.controlpanel.ITinyMCEResourceTypesSchema
@@ -275,97 +317,208 @@ imports:
   # ---------------------------------------------------------------------------
   # Other moved interfaces
   # ---------------------------------------------------------------------------
+
+  # IConstrainTypes
   - old: Products.CMFPlone.interfaces.IConstrainTypes
     new: plone.base.interfaces.constrains.IConstrainTypes
-
-  - old: Products.CMFPlone.interfaces.ISelectableConstrainTypes
-    new: plone.base.interfaces.constrains.ISelectableConstrainTypes
 
   - old: Products.CMFPlone.interfaces.constrains.IConstrainTypes
     new: plone.base.interfaces.constrains.IConstrainTypes
 
+  # ISelectableConstrainTypes
+  - old: Products.CMFPlone.interfaces.ISelectableConstrainTypes
+    new: plone.base.interfaces.constrains.ISelectableConstrainTypes
+
   - old: Products.CMFPlone.interfaces.constrains.ISelectableConstrainTypes
     new: plone.base.interfaces.constrains.ISelectableConstrainTypes
 
+  # IHideFromBreadcrumbs
   - old: Products.CMFPlone.interfaces.IHideFromBreadcrumbs
     new: plone.base.interfaces.breadcrumbs.IHideFromBreadcrumbs
 
+  - old: Products.CMFPlone.interfaces.breadcrumbs.IHideFromBreadcrumbs
+    new: plone.base.interfaces.breadcrumbs.IHideFromBreadcrumbs
+
+  # INonInstallable
   - old: Products.CMFPlone.interfaces.INonInstallable
     new: plone.base.interfaces.installable.INonInstallable
 
+  - old: Products.CMFPlone.interfaces.installable.INonInstallable
+    new: plone.base.interfaces.installable.INonInstallable
+
+  # INonStructuralFolder
   - old: Products.CMFPlone.interfaces.INonStructuralFolder
     new: plone.base.interfaces.structure.INonStructuralFolder
 
+  - old: Products.CMFPlone.interfaces.structure.INonStructuralFolder
+    new: plone.base.interfaces.structure.INonStructuralFolder
+
+  # IPatternsSettings
   - old: Products.CMFPlone.interfaces.IPatternsSettings
     new: plone.base.interfaces.patterns.IPatternsSettings
 
+  - old: Products.CMFPlone.interfaces.patterns.IPatternsSettings
+    new: plone.base.interfaces.patterns.IPatternsSettings
+
+  # IBundleRegistry
   - old: Products.CMFPlone.interfaces.IBundleRegistry
     new: plone.base.interfaces.resources.IBundleRegistry
 
+  - old: Products.CMFPlone.interfaces.resources.IBundleRegistry
+    new: plone.base.interfaces.resources.IBundleRegistry
+
+  # IResourceRegistry
   - old: Products.CMFPlone.interfaces.IResourceRegistry
     new: plone.base.interfaces.resources.IResourceRegistry
 
+  - old: Products.CMFPlone.interfaces.resources.IResourceRegistry
+    new: plone.base.interfaces.resources.IResourceRegistry
+
+  # ISiteSyndicationSettings
   - old: Products.CMFPlone.interfaces.ISiteSyndicationSettings
     new: plone.base.interfaces.syndication.ISiteSyndicationSettings
 
+  - old: Products.CMFPlone.interfaces.syndication.ISiteSyndicationSettings
+    new: plone.base.interfaces.syndication.ISiteSyndicationSettings
+
+  # IConfigurationChangedEvent
   - old: Products.CMFPlone.interfaces.IConfigurationChangedEvent
     new: plone.base.interfaces.events.IConfigurationChangedEvent
 
+  - old: Products.CMFPlone.interfaces.events.IConfigurationChangedEvent
+    new: plone.base.interfaces.events.IConfigurationChangedEvent
+
+  # IReorderedEvent
   - old: Products.CMFPlone.interfaces.IReorderedEvent
     new: plone.base.interfaces.events.IReorderedEvent
 
+  - old: Products.CMFPlone.interfaces.events.IReorderedEvent
+    new: plone.base.interfaces.events.IReorderedEvent
+
+  # ISiteManagerCreatedEvent
   - old: Products.CMFPlone.interfaces.ISiteManagerCreatedEvent
     new: plone.base.interfaces.events.ISiteManagerCreatedEvent
 
+  - old: Products.CMFPlone.interfaces.events.ISiteManagerCreatedEvent
+    new: plone.base.interfaces.events.ISiteManagerCreatedEvent
+
+  # IPloneBaseTool
   - old: Products.CMFPlone.interfaces.IPloneBaseTool
     new: plone.base.interfaces.basetool.IPloneBaseTool
 
+  - old: Products.CMFPlone.interfaces.basetool.IPloneBaseTool
+    new: plone.base.interfaces.basetool.IPloneBaseTool
+
+  # IPloneCatalogTool
   - old: Products.CMFPlone.interfaces.IPloneCatalogTool
     new: plone.base.interfaces.basetool.IPloneCatalogTool
 
+  - old: Products.CMFPlone.interfaces.basetool.IPloneCatalogTool
+    new: plone.base.interfaces.basetool.IPloneCatalogTool
+
+  # IPloneTool
   - old: Products.CMFPlone.interfaces.IPloneTool
     new: plone.base.interfaces.basetool.IPloneTool
 
+  - old: Products.CMFPlone.interfaces.basetool.IPloneTool
+    new: plone.base.interfaces.basetool.IPloneTool
+
+  # IInterfaceTool
   - old: Products.CMFPlone.interfaces.IInterfaceTool
     new: plone.base.interfaces.interface.IInterfaceTool
 
+  - old: Products.CMFPlone.interfaces.interface.IInterfaceTool
+    new: plone.base.interfaces.interface.IInterfaceTool
+
+  # ILanguage
   - old: Products.CMFPlone.interfaces.ILanguage
     new: plone.base.interfaces.language.ILanguage
 
+  - old: Products.CMFPlone.interfaces.language.ILanguage
+    new: plone.base.interfaces.language.ILanguage
+
+  # IMigrationTool
   - old: Products.CMFPlone.interfaces.IMigrationTool
     new: plone.base.interfaces.migration.IMigrationTool
 
+  - old: Products.CMFPlone.interfaces.migration.IMigrationTool
+    new: plone.base.interfaces.migration.IMigrationTool
+
+  # ITranslationServiceTool
   - old: Products.CMFPlone.interfaces.ITranslationServiceTool
     new: plone.base.interfaces.translationservice.ITranslationServiceTool
 
+  - old: Products.CMFPlone.interfaces.translationservice.ITranslationServiceTool
+    new: plone.base.interfaces.translationservice.ITranslationServiceTool
+
+  # IWorkflowChain
   - old: Products.CMFPlone.interfaces.IWorkflowChain
     new: plone.base.interfaces.workflow.IWorkflowChain
 
+  - old: Products.CMFPlone.interfaces.workflow.IWorkflowChain
+    new: plone.base.interfaces.workflow.IWorkflowChain
+
+  # IForcePasswordChange
   - old: Products.CMFPlone.interfaces.IForcePasswordChange
     new: plone.base.interfaces.login.IForcePasswordChange
 
+  - old: Products.CMFPlone.interfaces.login.IForcePasswordChange
+    new: plone.base.interfaces.login.IForcePasswordChange
+
+  # IInitialLogin
   - old: Products.CMFPlone.interfaces.IInitialLogin
     new: plone.base.interfaces.login.IInitialLogin
 
+  - old: Products.CMFPlone.interfaces.login.IInitialLogin
+    new: plone.base.interfaces.login.IInitialLogin
+
+  # ILogin
   - old: Products.CMFPlone.interfaces.ILogin
     new: plone.base.interfaces.login.ILogin
 
+  - old: Products.CMFPlone.interfaces.login.ILogin
+    new: plone.base.interfaces.login.ILogin
+
+  # ILoginForm
   - old: Products.CMFPlone.interfaces.ILoginForm
     new: plone.base.interfaces.login.ILoginForm
 
+  - old: Products.CMFPlone.interfaces.login.ILoginForm
+    new: plone.base.interfaces.login.ILoginForm
+
+  # ILoginFormSchema
   - old: Products.CMFPlone.interfaces.ILoginFormSchema
     new: plone.base.interfaces.login.ILoginFormSchema
 
+  - old: Products.CMFPlone.interfaces.login.ILoginFormSchema
+    new: plone.base.interfaces.login.ILoginFormSchema
+
+  # IRedirectAfterLogin
   - old: Products.CMFPlone.interfaces.IRedirectAfterLogin
     new: plone.base.interfaces.login.IRedirectAfterLogin
 
+  - old: Products.CMFPlone.interfaces.login.IRedirectAfterLogin
+    new: plone.base.interfaces.login.IRedirectAfterLogin
+
+  # IPWResetTool
   - old: Products.CMFPlone.interfaces.IPWResetTool
     new: plone.base.interfaces.password_reset.IPWResetTool
 
+  - old: Products.CMFPlone.interfaces.password_reset.IPWResetTool
+    new: plone.base.interfaces.password_reset.IPWResetTool
+
+  # IPasswordResetToolView
   - old: Products.CMFPlone.interfaces.IPasswordResetToolView
     new: plone.base.interfaces.password_reset.IPasswordResetToolView
 
+  - old: Products.CMFPlone.interfaces.password_reset.IPasswordResetToolView
+    new: plone.base.interfaces.password_reset.IPasswordResetToolView
+
+  # IPropertiesTool
   - old: Products.CMFPlone.interfaces.IPropertiesTool
+    new: plone.base.interfaces.properties.IPropertiesTool
+
+  - old: Products.CMFPlone.interfaces.properties.IPropertiesTool
     new: plone.base.interfaces.properties.IPropertiesTool
 
   # ---------------------------------------------------------------------------

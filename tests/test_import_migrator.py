@@ -44,7 +44,7 @@ class TestSimpleImportMigration:
     def test_IPloneSiteRoot(self):
         before = "from Products.CMFPlone.interfaces import IPloneSiteRoot\n"
         after = transform_code(before)
-        assert after == "from plone.base.interfaces import IPloneSiteRoot\n"
+        assert after == "from plone.base.interfaces.siteroot import IPloneSiteRoot\n"
 
     def test_safeToInt_rename(self):
         before = "from Products.CMFPlone.utils import safeToInt\n"
@@ -266,7 +266,7 @@ class TestEdgeCases:
         assert "from plone.base.utils import safe_text" in after
         assert "from plone.base.navigationroot import get_navigation_root" in after
         assert "from plone.base.interfaces.siteroot import INavigationRoot" in after
-        assert "from plone.base.interfaces import IPloneSiteRoot" in after
+        assert "from plone.base.interfaces.siteroot import IPloneSiteRoot" in after
 
         # Usage sites renamed
         assert "get_navigation_root(context)" in after

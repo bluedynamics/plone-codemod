@@ -2,6 +2,12 @@
 
 ## 1.0.0a7 (unreleased)
 
+- More package- and module-level replacements.
+  Group related package- and module-level replacements, prefer module-level for
+  the new versions and extend the migration config with missing package- or
+  module-level replacements.
+  [thet]
+
 - Generic setup migration: Migrate any GenericSetup xml files in any location.
   This fixes a problem, where upgrade steps were not migrated.
   [thet]
